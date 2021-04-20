@@ -1,6 +1,4 @@
 import numpy as np
-import scipy.stats as stats
-import matplotlib.pyplot as plt
 
 
 def uniform_pi(n=1):
@@ -9,8 +7,8 @@ def uniform_pi(n=1):
 
 
 def uniform(n=1):
-    """ This function simulates a uniform distribution on [-1, 1] """
-    return np.random.uniform(-1, 1, n)
+    """ This function simulates a uniform distribution on [0, 1] """
+    return np.random.uniform(0, 1, n)
 
 
 def normal(mean=0, std=1, n=1):
@@ -30,30 +28,31 @@ def von_mises_unif(mu=0, kappa=1, n=1):
     rejection sampling is the maximum value of the f on [-pi, pi].
 
     Overall, we have to :
-        - compute a realization of a uniform variable on [-pi, pi].
+        - simulate a uniform variable on [-pi, pi].
         - compute the value of exp(kappa * cos(theta - mu)) / exp(kappa).
-        - compute a realization of a uniform variable on [-1, 1].
+        - simulate a uniform variable on [-1, 1].
         - reject the value of theta if u > exp(kappa * (cos(theta - mu)- 1))
 
     """
 
-    # Compute the random variable
+    # Compute a uniform on [-pi, pi]
     unif_pi = uniform_pi(n)
-    unif = uniform(n)
 
-    # Compute the values of c * f(x) / g(x)
+    # Compute the value for the rejection test
     val = np.exp(kappa * (np.cos(unif_pi - mu) - 1))
+
+    # Compute a uniform on [0, 1]
+    unif = uniform(n)
 
     # Reject the values
     von_mises = unif_pi[unif <= val]
 
-    while len(unif_pi) < n:
-        unif_pi = uniform_pi(n - len(unif_pi))
-        unif = uniform(n - len(unif_pi))
-
-        # Compute the values of c * f(x) / g(x)
+    # Keep computing until we have a sample on size n
+    while len(von_mises) < n:
+        unif_pi = uniform_pi(n - len(von_mises))
         val = np.exp(kappa * (np.cos(unif_pi - mu) - 1))
+        unif = uniform(n - len(von_mises))
 
-        # Reject the values
         von_mises = np.concatenate((von_mises, unif_pi[unif <= val]))
+    return von_mises
 
