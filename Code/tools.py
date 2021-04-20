@@ -1,9 +1,6 @@
 import numpy as np
-
-
-def uniform_pi(n=1):
-    """ This function simulates a uniform distribution on [-pi, pi] """
-    return np.random.uniform(-np.pi, np.pi, n)
+from scipy.stats import vonmises
+import matplotlib.pyplot as plt
 
 
 def uniform(n=1):
@@ -11,48 +8,77 @@ def uniform(n=1):
     return np.random.uniform(0, 1, n)
 
 
-def normal(mean=0, std=1, n=1):
+def uniform_1(n=1):
+    """ This function simulates a uniform distribution on [-1, 1] """
+    return uniform(n=n) * 2 * 1 - 1
+
+
+def uniform_pi(n=1):
+    """ This function simulates a uniform distribution on [-pi, pi] """
+    return uniform(n=n) * 2 * np.pi - np.pi
+
+
+def cauchy(mean=0., std=1., n=1):
+    """ This function simulates a cauchy distribution """
+    return mean + std * np.tan(np.pi * (uniform(n=n) - 0.5))
+
+
+def normal(mean=0., std=1., n=1):
     """ This function simulates a normal distribution """
-    return np.random.normal(mean, std, n)
+
+    X, Y = uniform_1(n=n), uniform_1(n=n)
+    U = X**2 + Y**2
+    
+    X, U = X[(0 < U) & (U < 1)], U[(0 < U) & (U < 1)]
+    while len(X) < n:
+        print(len(X))
+        x, y = uniform_1(n=n - len(X)), uniform_1(n=n - len(X))
+        u = x**2 + y**2
+
+        X = np.concatenate((X, x[(0 < u) & (u < 1)]))
+        U = np.concatenate((U, u[(0 < u) & (u < 1)]))
+    return mean + std * X * np.sqrt(-2 * np.log(U) / U)
 
 
-def von_mises_unif(mu=0, kappa=1, n=1):
+def von_mises_unif(mu=0., kappa=1., n=100):
     """ This function simulates a von Mises distribution using the
     rejection sampler based on a uniform distribution on [-pi, pi]
     as proposal distribution.
 
-    In this case :
-        - g(theta) = 1 / (2*pi)
-        - f(theta) = 1 / Z(kappa) * exp(kappa * cos(x - mu))
-    Because g is constant on [-pi, pi] the optimal value for the
+    In this case, because g is constant on [-pi, pi] the optimal value for the
     rejection sampling is the maximum value of the f on [-pi, pi].
 
     Overall, we have to :
         - simulate a uniform variable on [-pi, pi].
         - compute the value of exp(kappa * cos(theta - mu)) / exp(kappa).
-        - simulate a uniform variable on [-1, 1].
+        - simulate a uniform variable on [0, 1].
         - reject the value of theta if u > exp(kappa * (cos(theta - mu)- 1))
 
+    :param float mu: mu
+    :param float kappa: kappa
+    :param int n: output size
+
+    :return array: sample of a rv following a von mises distribution.
     """
 
     # Compute a uniform on [-pi, pi]
-    unif_pi = uniform_pi(n)
+    sample = uniform_pi(n=n)
 
     # Compute the value for the rejection test
-    val = np.exp(kappa * (np.cos(unif_pi - mu) - 1))
+    val = np.exp(kappa * (np.cos(sample - mu) - 1))
 
     # Compute a uniform on [0, 1]
     unif = uniform(n)
 
     # Reject the values
-    von_mises = unif_pi[unif <= val]
+    von_mises = sample[unif <= val]
 
     # Keep computing until we have a sample on size n
     while len(von_mises) < n:
-        unif_pi = uniform_pi(n - len(von_mises))
-        val = np.exp(kappa * (np.cos(unif_pi - mu) - 1))
+        sample = uniform_pi(n - len(von_mises))
+        val = np.exp(kappa * (np.cos(sample - mu) - 1))
         unif = uniform(n - len(von_mises))
 
-        von_mises = np.concatenate((von_mises, unif_pi[unif <= val]))
+        von_mises = np.concatenate((von_mises, sample[unif <= val]))
     return von_mises
 
