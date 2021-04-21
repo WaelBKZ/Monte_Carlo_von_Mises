@@ -3,7 +3,6 @@ from scipy.stats import vonmises
 import matplotlib.pyplot as plt
 from math import *
 
-von_mises_density = lambda x,mu=0,kappa=3 : exp(kappa*cos(x-mu)) * (-pi<=x<=pi) #densité définie à une constante près
 
 def uniform(n=1):
     """ This function simulates a uniform distribution on [0, 1] """
@@ -29,13 +28,13 @@ def normal(mean=0., std=1., n=1):
     """ This function simulates a normal distribution """
 
     X, Y = uniform_1(n=n), uniform_1(n=n)
-    U = X**2 + Y**2
-    
+    U = X ** 2 + Y ** 2
+
     X, U = X[(0 < U) & (U < 1)], U[(0 < U) & (U < 1)]
     while len(X) < n:
         print(len(X))
         x, y = uniform_1(n=n - len(X)), uniform_1(n=n - len(X))
-        u = x**2 + y**2
+        u = x ** 2 + y ** 2
 
         X = np.concatenate((X, x[(0 < u) & (u < 1)]))
         U = np.concatenate((U, u[(0 < u) & (u < 1)]))
@@ -84,3 +83,15 @@ def von_mises_unif(mu=0., kappa=1., n=100):
         von_mises = np.concatenate((von_mises, sample[unif <= val]))
     return von_mises
 
+
+def von_mises_density(x, mu=0, kappa=3):
+    """ Computes the density of a Von Mises distribution with parameters mu and kappa.
+    Defined up to a constant multiplier.
+
+    :param float x: point to be evaluated
+    :param float mu: mu
+    :param float kappa: kappa
+
+    :return float: Von Mises density evaluated on x (up to a constant multiplier).
+    """
+    return exp(kappa * cos(x - mu)) * (-pi <= x <= pi)
