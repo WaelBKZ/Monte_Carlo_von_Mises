@@ -1,7 +1,9 @@
 import numpy as np
 from scipy.stats import vonmises
 import matplotlib.pyplot as plt
+from math import *
 
+von_mises_density = lambda x,mu=0,kappa=3 : exp(kappa*cos(x-mu)) * (-pi<=x<=pi) #densité définie à une constante près
 
 def uniform(n=1):
     """ This function simulates a uniform distribution on [0, 1] """
