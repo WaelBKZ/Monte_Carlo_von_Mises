@@ -6,7 +6,7 @@ from statsmodels.graphics.tsaplots import plot_acf
 
 class ProjectModel:
     """
-    Parent class to all our project models, gathering common methods and constructor for every Von Mises models.
+    Parent class to all our project models classes, gathering common methods and constructor for every Von Mises models.
     """
 
     def __init__(self, mu=0., kappa=3., x_init=0., proposal='gaussian', sig=2.):
