@@ -41,7 +41,6 @@ class ProjectModel:
         """
         Generates and prints the graph of the observations made under the simulation of our model.
         User needs to run {self}.simulation(n) method first.
-
         :return None:
         """
         if np.array_equal(self.results, []):
@@ -72,9 +71,7 @@ class VonMisesAcceptReject(ProjectModel):
     def simulate(self, n=1):
         """
         Generates n observation(s) under our Von Mises Accept-Reject simulation.
-
         :param int n: number of observation(s) wished.
-
         :return list: list of observation(s), floats.
         """
         self.number_observations = n
@@ -91,11 +88,9 @@ class VonMisesRWHM(ProjectModel):
     def proposal_step(proposal='gaussian', sig=2):
         """
     Computes the step of the random walk.
-
         :param str proposal: proposed function
         :param float sig: standard deviation (gaussian) or size of the uniform distribution wished for our random walk
         proposal
-
         :return float: the random walk step
         """
         if proposal == 'gaussian':
@@ -108,9 +103,7 @@ class VonMisesRWHM(ProjectModel):
     def iter(self, x):
         """
     Does an iteration of the RWHM simulation.
-
         :param float x: initial value
-
         :return float: new value of the Markov chain
         """
         proposal_step = self.proposal_step(self.proposal, self.sig)
@@ -126,9 +119,7 @@ class VonMisesRWHM(ProjectModel):
     def simulate(self, n=100_000):
         """
         Generates n observation(s) under our Von Mises Random Walk Hastings-Metropolis simulation.
-
         :param int n: number of observation(s) wished.
-
         :return list: list of observation(s), floats.
         """
         self.number_observations = n
