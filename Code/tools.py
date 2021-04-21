@@ -11,7 +11,7 @@ def uniform(n=1):
 
 def uniform_1(n=1):
     """ This function simulates a uniform distribution on [-1, 1] """
-    return uniform(n=n) * 2 * 1 - 1
+    return uniform(n=n) * 2 - 1
 
 
 def uniform_pi(n=1):
@@ -32,7 +32,6 @@ def normal(mean=0., std=1., n=1):
 
     X, U = X[(0 < U) & (U < 1)], U[(0 < U) & (U < 1)]
     while len(X) < n:
-        print(len(X))
         x, y = uniform_1(n=n - len(X)), uniform_1(n=n - len(X))
         u = x ** 2 + y ** 2
 
@@ -94,4 +93,4 @@ def von_mises_density(x, mu=0, kappa=3):
 
     :return float: Von Mises density evaluated on x (up to a constant multiplier).
     """
-    return exp(kappa * cos(x - mu)) * (-pi <= x <= pi)
+    return np.exp(kappa * np.cos(x - mu)) * (-np.pi <= x <= np.pi)

@@ -1,7 +1,8 @@
-from tools import *
+import logging
 import matplotlib.pyplot as plt
 from scipy.stats import vonmises
 from statsmodels.graphics.tsaplots import plot_acf
+from tools import *
 
 
 class ProjectModel:
@@ -36,7 +37,11 @@ class ProjectModel:
         self.number_observations = 0
 
         # results of the simulation;
-        self.results = []
+        self.results = None
+
+    def simulate(self, n=1):
+        raise NotImplementedError("The method should be defined in each child class.")
+        pass
 
     def hist(self):
         """
@@ -44,14 +49,16 @@ class ProjectModel:
         User needs to run {self}.simulation(n) method first.
         :return None:
         """
-        if np.array_equal(self.results, []):
-            print('You did not run the simulation yet. Please run {self}.simulate() first.')
-            return None
+
+        if self.results is None:
+            logging.warning("No simulation has been launched yet: computing ...")
+            self.simulate(n=n)
+
         plt.gcf().clear()
         fig = plt.figure(figsize=(10, 6))
         ax = fig.add_axes([0.065, 0.1, 0.75, 0.8])
 
-        ax.hist(self.results, bins=500, density=True, color='grey')
+        ax.hist(self.results, bins=200, density=True, color='grey')
         x = np.linspace(-np.pi, np.pi, 100)
         ax.plot(x, vonmises.pdf(x, self.kappa, loc=self.mu), 'r-', lw=1, label='theoretical')
 
@@ -59,6 +66,7 @@ class ProjectModel:
                 f'mu:         {self.mu:.3f}\nkappa:    {self.kappa:.3f}\nn:       {self.number_observations:.1e}',
                 style='italic',
                 bbox={'facecolor': 'white', 'alpha': 0.5, 'pad': 10})
+
         ax.set_title(f'Von Mises simulation : {self.__class__.__name__}.')
         plt.legend()
         plt.show()
@@ -75,6 +83,7 @@ class VonMisesAcceptReject(ProjectModel):
         :param int n: number of observation(s) wished.
         :return list: list of observation(s), floats.
         """
+
         self.number_observations = n
         self.results = von_mises_unif(self.mu, self.kappa, n)
         return self.results
@@ -86,18 +95,19 @@ class VonMisesRWHM(ProjectModel):
     """
 
     @staticmethod
-    def proposal_step(proposal='gaussian', sig=2):
+    def proposal_step(proposal='gaussian', sig=2.):
         """
-    Computes the step of the random walk.
+        Computes the step of the random walk.
+
         :param str proposal: proposed function
         :param float sig: standard deviation (gaussian) or size of the uniform distribution wished for our random walk
         proposal
         :return float: the random walk step
         """
         if proposal == 'gaussian':
-            return sig * np.random.randn()
+            return sig * normal()
         elif proposal == 'uniform':
-            return sig * np.random.uniform(-1, 1)
+            return sig * uniform_1()
         else:
             print('Wrong proposal')
 
@@ -123,14 +133,18 @@ class VonMisesRWHM(ProjectModel):
         :param int n: number of observation(s) wished.
         :return list: list of observation(s), floats.
         """
+
         self.number_observations = n
         self.n_accept = 0
+
         x = np.empty(n)
         x[0] = self.x_init
         for i in range(1, n):  # we realize (n-1) iterations of the Markov Chain
             x[i] = self.iter(x[i - 1])
+
         self.acceptation_rate = self.n_accept / n
         print(f'Acceptation rate: {self.acceptation_rate} %.')  # should be calibrated between 25% and 40%;
+
         self.results = x
         return self.results
 
@@ -140,7 +154,8 @@ class VonMisesRWHM(ProjectModel):
         randoms series where no particular pattern appears.
         :param int n_points: number of points to display
         :return None: returns the graph of the chain.
-                """
+        """
+
         plt.plot(self.results[:n_points])
         plt.show()
 
@@ -149,11 +164,10 @@ class VonMisesRWHM(ProjectModel):
         Draw the autocorrelations of the Markov chain. A sanity-check for this MCMC simulation is to have the
         autocorrelations plummet rapidly.
         :return None: returns the graph of the autocorrelations.
-                """
+        """
+
         plot_acf(self.results)
         plt.show()
-
-    # Note pour le groupe : il faut peut-être penser à des moyens d'évaluer notre modèle ?
 
 
 if __name__ == '__main__':
@@ -162,20 +176,17 @@ if __name__ == '__main__':
     kappa = 0.7
     n = 100_000
 
-    ### ACCEPT-REJECT:
+    """ ACCEPT-REJECT """
     print("Accept-Reject simulation:")
     model = VonMisesAcceptReject(mu=mu, kappa=kappa)
     model.simulate(n=n)  # generates n observations under the Accept-Reject simulation;
     model.hist()  # generates the histogram of the above observations;
 
-
-
-    ### RANDOM WALK HASTINGS-METROPOLIS:
-
-    #Parameters exclusive to RWHM:
+    """ RANDOM WALK HASTINGS-METROPOLIS """
+    # Parameters exclusive to RWHM:
     x_init = 0
     proposal = 'gaussian'
-    #proposal = 'uniform'
+    # proposal = 'uniform'
     sig = 5.5
 
     print("\nRandom Walk Hastings-Metropolis simulation:")
@@ -183,10 +194,8 @@ if __name__ == '__main__':
     model.simulate(n=n)  # generates n observations under the Random Walk Hastings-Metropolis simulation;
     model.hist()  # generates the histogram of the above observations;
 
-
-
-    ## SANITY CHECK FOR RWHM:
-    model.graph_autocorrelation()
-    model.graph_chain(n_points=500)
+    """ SANITY CHECK FOR RWHM """
+    #model.graph_autocorrelation()
+    #model.graph_chain(n_points=500)
     # implementation of burn-in sanity-check doesn't have much value there since the distribution is very narrow
     # there (between [-pi,pi]), thus the simulation cannot really 'get lost'.
