@@ -31,14 +31,17 @@ class ProjectModel:
             self.n_accept = 0
             self.acceptation_rate = 0
 
+        # number of observations the simulation will predict; 0 before assignation;
+        self.number_observations = 0
+
         # results of the simulation;
         self.results = []
 
-    def hist(self, n=100_000):
+    def hist(self):
         """
-        Generates and prints the graph of n observations made under our model.
+        Generates and prints the graph of the observations made under the simulation of our model.
+        User needs to run {self}.simulation(n) method first.
 
-        :param int n:number of observations wished
         :return None:
         """
         if np.array_equal(self.results, []):
@@ -53,7 +56,7 @@ class ProjectModel:
         ax.plot(x, vonmises.pdf(x, self.kappa, loc=self.mu), 'r-', lw=1, label='theoretical')
 
         ax.text(3.85, 0.15,
-                f'mu:         {self.mu:.3f}\nkappa:    {self.kappa:.3f}\nn:       {n:.1e}',
+                f'mu:         {self.mu:.3f}\nkappa:    {self.kappa:.3f}\nn:       {self.number_observations:.1e}',
                 style='italic',
                 bbox={'facecolor': 'white', 'alpha': 0.5, 'pad': 10})
         ax.set_title(f'Von Mises simulation : {self.__class__.__name__}.')
@@ -69,25 +72,30 @@ class VonMisesAcceptReject(ProjectModel):
     def simulate(self, n=1):
         """
         Generates n observation(s) under our Von Mises Accept-Reject simulation.
+
         :param int n: number of observation(s) wished.
+
         :return list: list of observation(s), floats.
         """
+        self.number_observations = n
         self.results = von_mises_unif(self.mu, self.kappa, n)
         return self.results
 
 
 class VonMisesRWHM(ProjectModel):
     """
-    Random Walk Hastings-Metropolis (RWMH) simulation for Von Mises distribution.
+    Random Walk Hastings-Metropolis (RWHM) simulation for Von Mises distribution.
     """
 
     @staticmethod
     def proposal_step(proposal='gaussian', sig=2):
         """
     Computes the step of the random walk.
+
         :param str proposal: proposed function
         :param float sig: standard deviation (gaussian) or size of the uniform distribution wished for our random walk
         proposal
+
         :return float: the random walk step
         """
         if proposal == 'gaussian':
@@ -100,7 +108,9 @@ class VonMisesRWHM(ProjectModel):
     def iter(self, x):
         """
     Does an iteration of the RWHM simulation.
+
         :param float x: initial value
+
         :return float: new value of the Markov chain
         """
         proposal_step = self.proposal_step(self.proposal, self.sig)
@@ -116,9 +126,12 @@ class VonMisesRWHM(ProjectModel):
     def simulate(self, n=100_000):
         """
         Generates n observation(s) under our Von Mises Random Walk Hastings-Metropolis simulation.
+
         :param int n: number of observation(s) wished.
+
         :return list: list of observation(s), floats.
         """
+        self.number_observations = n
         self.n_accept = 0
         x = np.empty(n)
         x[0] = self.x_init
@@ -136,14 +149,20 @@ if __name__ == '__main__':
     mu = np.pi / 4
     kappa = 0.7
     n = 1_000_000
-    print("Modèle d'acceptation rejet :")
+
+    print("Accept-Reject simulation:")
     model = VonMisesAcceptReject(mu=mu, kappa=kappa)
-    results = model.simulate(n=n)  # Génère un résultat de notre modèle Von Mises.
-    model.hist(n=n)  # Génère un graphe à n observations.
-    print(help(ProjectModel))
-    #
-    # print("Modèle de marche aléatoire Hastings-Metropolis:")
-    # sig = 4
-    # model = VonMisesRWHM(mu=mu, kappa=kappa, x_init=0, proposal='gaussian', sig=sig)
-    # result = model.simulate(n=n)  # Génère un résultat de notre modèle Von Mises.
-    # model.hist(n=n)  # Génère un graphe à n observations.
+    results = model.simulate(n=n)  # generates n observations under the Accept-Reject simulation;
+    model.hist()  # generates the histogram of the above observations;
+
+    print()
+
+    print("Random Walk Hastings-Metropolis simulation:")
+    x_init = 0
+    proposal = 'gaussian'
+    # proposal = 'uniform'
+    sig = 5
+
+    model = VonMisesRWHM(mu=mu, kappa=kappa, x_init=x_init, proposal=proposal, sig=sig)
+    result = model.simulate(n=n)  # generates n observations under the Random Walk Hastings-Metropolis simulation;
+    model.hist()  # generates the histogram of the above observations;
