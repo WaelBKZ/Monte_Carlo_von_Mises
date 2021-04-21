@@ -1,6 +1,7 @@
 from tools import *
 import matplotlib.pyplot as plt
 from scipy.stats import vonmises
+from statsmodels.graphics.tsaplots import plot_acf
 
 
 class ProjectModel:
@@ -8,7 +9,7 @@ class ProjectModel:
     Parent class to all our project models, gathering common methods and constructor for every Von Mises models.
     """
 
-    def __init__(self, mu=0., kappa=3., x_init=0, proposal='gaussian', sig=2):
+    def __init__(self, mu=0., kappa=3., x_init=0., proposal='gaussian', sig=2.):
         # mu parameter
         self.mu = mu
 
@@ -133,27 +134,59 @@ class VonMisesRWHM(ProjectModel):
         self.results = x
         return self.results
 
+    def graph_chain(self, n_points=1000):
+        """
+        Draw the the Markov chain. A sanity-check for this MCMC simulation is to have the graph looks 'random' : i.e. a
+        randoms series where no particular pattern appears.
+        :param int n_points: number of points to display
+        :return None: returns the graph of the chain.
+                """
+        plt.plot(self.results[:n_points])
+        plt.show()
+
+    def graph_autocorrelation(self):
+        """
+        Draw the autocorrelations of the Markov chain. A sanity-check for this MCMC simulation is to have the
+        autocorrelations plummet rapidly.
+        :return None: returns the graph of the autocorrelations.
+                """
+        plot_acf(self.results)
+        plt.show()
+
     # Note pour le groupe : il faut peut-être penser à des moyens d'évaluer notre modèle ?
 
 
 if __name__ == '__main__':
+    # Parameters common to every model:
     mu = np.pi / 4
     kappa = 0.7
-    n = 1_000_000
+    n = 100_000
 
+    ### ACCEPT-REJECT:
     print("Accept-Reject simulation:")
     model = VonMisesAcceptReject(mu=mu, kappa=kappa)
-    results = model.simulate(n=n)  # generates n observations under the Accept-Reject simulation;
+    model.simulate(n=n)  # generates n observations under the Accept-Reject simulation;
     model.hist()  # generates the histogram of the above observations;
 
-    print()
 
-    print("Random Walk Hastings-Metropolis simulation:")
+
+    ### RANDOM WALK HASTINGS-METROPOLIS:
+
+    #Parameters exclusive to RWHM:
     x_init = 0
     proposal = 'gaussian'
-    # proposal = 'uniform'
-    sig = 5
+    #proposal = 'uniform'
+    sig = 5.5
 
+    print("\nRandom Walk Hastings-Metropolis simulation:")
     model = VonMisesRWHM(mu=mu, kappa=kappa, x_init=x_init, proposal=proposal, sig=sig)
-    result = model.simulate(n=n)  # generates n observations under the Random Walk Hastings-Metropolis simulation;
+    model.simulate(n=n)  # generates n observations under the Random Walk Hastings-Metropolis simulation;
     model.hist()  # generates the histogram of the above observations;
+
+
+
+    ## SANITY CHECK FOR RWHM:
+    model.graph_autocorrelation()
+    model.graph_chain(n_points=500)
+    # implementation of burn-in sanity-check doesn't have much value there since the distribution is very narrow
+    # there (between [-pi,pi]), thus the simulation cannot really 'get lost'.
