@@ -1,7 +1,5 @@
 import numpy as np
-from scipy.stats import vonmises
 import matplotlib.pyplot as plt
-from math import *
 
 
 def uniform(n=1):
@@ -17,11 +15,6 @@ def uniform_1(n=1):
 def uniform_pi(n=1):
     """ This function simulates a uniform distribution on [-pi, pi] """
     return uniform(n=n) * 2 * np.pi - np.pi
-
-
-def cauchy(mean=0., std=1., n=1):
-    """ This function simulates a cauchy distribution """
-    return mean + std * np.tan(np.pi * (uniform(n=n) - 0.5))
 
 
 def normal(mean=0., std=1., n=1):
@@ -45,15 +38,6 @@ def von_mises_unif(mu=0., kappa=1., n=100):
     rejection sampler based on a uniform distribution on [-pi, pi]
     as proposal distribution.
 
-    In this case, because g is constant on [-pi, pi] the optimal value for the
-    rejection sampling is the maximum value of the f on [-pi, pi].
-
-    Overall, we have to :
-        - simulate a uniform variable on [-pi, pi].
-        - compute the value of exp(kappa * cos(theta - mu)) / exp(kappa).
-        - simulate a uniform variable on [0, 1].
-        - reject the value of theta if u > exp(kappa * (cos(theta - mu)- 1))
-
     :param float mu: mu
     :param float kappa: kappa
     :param int n: output size
@@ -67,19 +51,93 @@ def von_mises_unif(mu=0., kappa=1., n=100):
     # Compute the value for the rejection test
     val = np.exp(kappa * (np.cos(sample - mu) - 1))
 
-    # Compute a uniform on [0, 1]
-    unif = uniform(n)
-
-    # Reject the values
-    von_mises = sample[unif <= val]
+    # Acceptance step
+    von_mises = sample[uniform(n) <= val]
 
     # Keep computing until we have a sample on size n
     while len(von_mises) < n:
         sample = uniform_pi(n - len(von_mises))
         val = np.exp(kappa * (np.cos(sample - mu) - 1))
-        unif = uniform(n - len(von_mises))
 
-        von_mises = np.concatenate((von_mises, sample[unif <= val]))
+        von_mises = np.concatenate((von_mises, sample[uniform(n - len(von_mises)) <= val]))
+    return von_mises
+
+
+def von_mises_log(x1=-0.4, x2=0.4, mu=0., kappa=1., n=100):
+    """
+    This function simulates a von Mises distribution using the
+    rejection sampler based on a uniform distribution on [-pi, pi]
+    as proposal distribution.
+
+    :param float mu: mu
+    :param float kappa: kappa
+    :param int n: output size
+
+    :return array: sample of a rv following a von mises distribution.
+    """
+
+    def log_f(x):
+        return kappa * np.cos(x)
+
+    def log_f_(x):
+        return - kappa * np.sin(x)
+
+    a1 = 2 * kappa / np.pi
+    a2 = log_f_(x1)
+    a3 = log_f_(x2)
+    a4 = -a1
+
+    b1 = kappa
+    b2 = log_f(x1) - a2 * x1
+    b3 = log_f(x2) - a3 * x2
+    b4 = kappa
+
+    z0 = -np.pi
+    z1 = -np.pi / 2
+    z2 = (b3 - b2) / (a2 - a3)
+    z3 = np.pi / 2
+    z4 = np.pi
+
+    Q1 = np.exp(b1) * (np.exp(a1 * z1) - np.exp(a1 * z0)) / a1
+    Q2 = Q1 + np.exp(b2) * (np.exp(a2 * z2) - np.exp(a2 * z1)) / a2
+    Q3 = Q2 + np.exp(b3) * (np.exp(a3 * z3) - np.exp(a3 * z2)) / a3
+    c = Q3 + np.exp(b4) * (np.exp(a4 * z4) - np.exp(a4 * z3)) / a4
+
+    def acceptance_val(x):
+        """
+        This function computes the acceptance value.
+        """
+
+        if x < Q1:
+            z = np.log(a1 * np.exp(-b1) * x + np.exp(a1 * z0)) / a1
+            return [z, np.exp(log_f(z) - a1 * z - b1)]
+        elif x < Q2:
+            z = np.log(a2 * np.exp(-b2) * (x - Q1) + np.exp(a2 * z1)) / a2
+            return [z, np.exp(log_f(z) - a2 * z - b2)]
+        elif x < Q3:
+            z = np.log(a3 * np.exp(-b3) * (x - Q2) + np.exp(a3 * z2)) / a3
+            return [z, np.exp(log_f(z) - a3 * z - b3)]
+        else:
+            z = np.log(a4 * np.exp(-b4) * (x - Q3) + np.exp(a4 * z3)) / a4
+            return [z, np.exp(log_f(z) - a4 * z - b4)]
+
+    # Compute a uniform on [-c, c]
+    C = c * uniform(n=n)
+
+    # Compute the value for the rejection test
+    res = np.array([acceptance_val(x) for x in C])
+    sample, val = res[:, 0], res[:, 1]
+
+    # Acceptance step
+    von_mises = sample[uniform(n) <= val]
+
+    # Keep computing until we have a sample on size n
+    while len(von_mises) < n:
+        C = c * uniform(n=n)
+        res = np.array([acceptance_val(x) for x in C])
+        sample, val = res[:, 0], res[:, 1]
+
+        von_mises = np.concatenate((von_mises, sample[uniform(n) <= val]))
     return von_mises
 
 
