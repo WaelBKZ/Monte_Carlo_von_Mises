@@ -10,12 +10,15 @@ class ProjectModel:
     Parent class to all our project models classes, gathering common methods and constructor for every Von Mises models.
     """
 
-    def __init__(self, mu=0., kappa=3., x_init=0., proposal='gaussian', sig=2.):
+    def __init__(self, mu=0., kappa=3., x_init=0., proposal='log', proposal_RWHM='gaussian', sig=2.):
         # mu parameter
         self.mu = mu
 
         # kappa parameter
         self.kappa = kappa
+
+        # propsed distribution for the rejection sampling; can be either 'log' or 'uniform'
+        self.proposal = proposal
 
         if self.__class__.__name__ == 'VonMisesRWHM':
             # the following objects are only built if the model is a Random Walk Hasting-Metropolis (RWHM) model;
@@ -24,7 +27,7 @@ class ProjectModel:
             self.x_init = x_init
 
             # proposed distribution for the random walk; can be either 'gaussian' or 'uniform';
-            self.proposal = proposal
+            self.proposal_RWHM = proposal_RWHM
 
             # standard deviation (gaussian) or size of the uniform distribution wished for our random walk proposal;
             self.sig = sig
@@ -85,7 +88,12 @@ class VonMisesAcceptReject(ProjectModel):
         """
 
         self.number_observations = n
-        self.results = von_mises_unif(self.mu, self.kappa, n)
+        if self.proposal == 'log':
+            self.results = von_mises_log(mu=self.mu, kappa=self.kappa, n=n)
+        elif self.proposal == 'uniform':
+            self.results = von_mises_unif(mu=self.mu, kappa=self.kappa, n=n)
+        else:
+            raise NotImplementedError('Wrong proposal.')
         return self.results
 
 
@@ -95,21 +103,21 @@ class VonMisesRWHM(ProjectModel):
     """
 
     @staticmethod
-    def proposal_step(proposal='gaussian', sig=2.):
+    def proposal_step(proposal_RWHM='gaussian', sig=2.):
         """
         Computes the step of the random walk.
 
-        :param str proposal: proposed function
+        :param str proposal_RWHM: proposed function
         :param float sig: standard deviation (gaussian) or size of the uniform distribution wished for our random walk
         proposal
         :return float: the random walk step
         """
-        if proposal == 'gaussian':
+        if proposal_RWHM == 'gaussian':
             return sig * normal()
-        elif proposal == 'uniform':
+        elif proposal_RWHM == 'uniform':
             return sig * uniform_1()
         else:
-            print('Wrong proposal')
+            raise NotImplementedError('Wrong proposal')
 
     def iter(self, x):
         """
@@ -117,7 +125,7 @@ class VonMisesRWHM(ProjectModel):
         :param float x: initial value
         :return float: new value of the Markov chain
         """
-        proposal_step = self.proposal_step(self.proposal, self.sig)
+        proposal_step = self.proposal_step(self.proposal_RWHM, self.sig)
         y = x + proposal_step
         r = von_mises_density(y, mu=self.mu, kappa=self.kappa) / von_mises_density(x, mu=self.mu, kappa=self.kappa)
         u = np.random.rand()
@@ -173,29 +181,29 @@ class VonMisesRWHM(ProjectModel):
 if __name__ == '__main__':
     # Parameters common to every model:
     mu = np.pi / 4
-    kappa = 0.7
-    n = 100_000
+    kappa = 1.
+    n = 1_000_000
 
     """ ACCEPT-REJECT """
     print("Accept-Reject simulation:")
-    model = VonMisesAcceptReject(mu=mu, kappa=kappa)
+    model = VonMisesAcceptReject(mu=mu, kappa=kappa, proposal='log')
     model.simulate(n=n)  # generates n observations under the Accept-Reject simulation;
     model.hist()  # generates the histogram of the above observations;
 
     """ RANDOM WALK HASTINGS-METROPOLIS """
     # Parameters exclusive to RWHM:
     x_init = 0
-    proposal = 'gaussian'
-    # proposal = 'uniform'
+    proposal_RWHM = 'gaussian'
+    # proposal_RWHM = 'uniform'
     sig = 5.5
 
     print("\nRandom Walk Hastings-Metropolis simulation:")
-    model = VonMisesRWHM(mu=mu, kappa=kappa, x_init=x_init, proposal=proposal, sig=sig)
+    model = VonMisesRWHM(mu=mu, kappa=kappa, x_init=x_init, proposal='log', proposal_RWHM=proposal_RWHM, sig=sig)
     model.simulate(n=n)  # generates n observations under the Random Walk Hastings-Metropolis simulation;
     model.hist()  # generates the histogram of the above observations;
 
     """ SANITY CHECK FOR RWHM """
-    #model.graph_autocorrelation()
-    #model.graph_chain(n_points=500)
+    # model.graph_autocorrelation()
+    # model.graph_chain(n_points=500)
     # implementation of burn-in sanity-check doesn't have much value there since the distribution is very narrow
     # there (between [-pi,pi]), thus the simulation cannot really 'get lost'.
