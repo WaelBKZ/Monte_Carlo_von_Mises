@@ -66,7 +66,10 @@ class ProjectModel:
         ax.plot(x, vonmises.pdf(x, self.kappa, loc=self.mu), 'r-', lw=1, label='theoretical')
 
         ax.text(3.85, 0.15,
-                f'mu:         {self.mu:.3f}\nkappa:    {self.kappa:.3f}\nn:       {self.number_observations:.1e}',
+                f'proposal: {self.proposal}\n\n'
+                f'mu:         {self.mu:.3f}\n'
+                f'kappa:    {self.kappa:.3f}\n'
+                f'n:       {self.number_observations:.1e}',
                 style='italic',
                 bbox={'facecolor': 'white', 'alpha': 0.5, 'pad': 10})
 
@@ -113,9 +116,9 @@ class VonMisesRWHM(ProjectModel):
         :return float: the random walk step
         """
         if proposal_RWHM == 'gaussian':
-            return sig * normal()
+            return sig * normal(n=1)
         elif proposal_RWHM == 'uniform':
-            return sig * uniform_1()
+            return sig * uniform_1(n=1)
         else:
             raise NotImplementedError('Wrong proposal')
 
