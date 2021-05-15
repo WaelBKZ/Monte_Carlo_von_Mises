@@ -10,7 +10,7 @@ class ProjectModel:
     Parent class to all our project models classes, gathering common methods and constructor for every Von Mises models.
     """
 
-    def __init__(self, mu=0., kappa=3., x_init=0., proposal='log', proposal_RWHM='gaussian', sig=2.):
+    def __init__(self, mu=0., kappa=1., x_init=0., proposal='log', proposal_RWHM='gaussian', sig=2.):
         # mu parameter
         self.mu = mu
 
@@ -42,11 +42,69 @@ class ProjectModel:
         # results of the simulation;
         self.results = None
 
+    def describe_mu(self, save=False):
+        """ This function plots the density of a von-Mises distribution for different values of mu """
+
+        mu = [-np.pi/2, 0, np.pi/2]
+
+        fig, ax = plt.subplots(1, 3, figsize=(12, 5), sharey=True)
+        i = 0
+        x = np.linspace(-np.pi, np.pi, 300)
+        for val in mu:
+            ax[i].plot(x, vonmises.pdf(x, self.kappa, loc=val), 'r-', lw=1)  # On trace
+            ax[i].set_ylim([0., None])  # On impose que l'axe des ordonnées commence par la valeur 0.
+            ax[i].set_xticks([-3.14, 0.,  3.14])  # On impose les valeurs de la légende en abscisse
+            i += 1
+
+        ax[0].title.set_text(f'\u03BC = -\u03C0/2')
+        ax[1].title.set_text(f'\u03BC = 0')
+        ax[2].title.set_text(f'\u03BC = \u03C0/2')
+
+        ax[0].locator_params(axis="y", nbins=4)
+        # On efface les axes des ordonnées
+        ax[1].get_yaxis().set_visible(False)
+        ax[2].get_yaxis().set_visible(False)
+
+        fig.suptitle(f'Von-Mises  (\u03BA = {self.kappa})')
+        plt.show()
+        if save:
+            fig.savefig('images/describe_mu.png')
+
+    def describe_kappa(self, save=False):
+        """ This function plots the density of a von-Mises distribution for different values of kappa """
+
+        kappa = [0, 0.1, 0.5, 1.5, 4, 20]
+        fig, ax = plt.subplots(2, 3, figsize=(13, 7))
+
+        i = 1
+        x = np.linspace(-np.pi, np.pi, 300)
+
+        ax[0, 0].plot(x, len(x) * [1 / (2 * np.pi)], 'r-', lw=1)  # On trace
+        ax[0, 0].set_ylim([0., None])  # On impose que l'axe des ordonnées commence par la valeur 0.
+        ax[0, 0].set_xticks([-3.14, 0., 3.14])  # On impose les valeurs de la légende en abscisse
+        ax[0, 0].locator_params(axis="y", nbins=4)
+        ax[0, 0].title.set_text(f'\u03BA = {0}')
+
+        for val in kappa:
+            if val != 0:
+                ax[i//3, i % 3].plot(x, vonmises.pdf(x, val, loc=0.), 'r-', lw=1)  # On trace
+                ax[i//3, i % 3].set_ylim([0., None])  # On impose que l'axe des ordonnées commence par la valeur 0.
+                ax[i//3, i % 3].set_xticks([-3.14, 0.,  3.14])  # On impose les valeurs de la légende en abscisse
+                ax[i//3, i % 3].locator_params(axis="y", nbins=4)
+                ax[i//3, i % 3].title.set_text(f'\u03BA = {val}')
+                i += 1
+
+        fig.suptitle('Von-Mises (\u03BC = 0)')
+        fig.tight_layout(pad=1.0)
+        plt.show()
+        if save:
+            fig.savefig('images/describe_kappa.png')
+
     def simulate(self, n=1):
         raise NotImplementedError("The method should be defined in each child class.")
         pass
 
-    def hist(self):
+    def hist(self, save=False):
         """
         Generates and prints the graph of the observations made under the simulation of our model.
         User needs to run {self}.simulation(n) method first.
@@ -76,6 +134,8 @@ class ProjectModel:
         ax.set_title(f'Von Mises simulation : {self.__class__.__name__}.')
         plt.legend()
         plt.show()
+        if save:
+            fig.savefig('images/simulation_' + self.proposal + '.png')
 
 
 class VonMisesAcceptReject(ProjectModel):
@@ -183,21 +243,26 @@ class VonMisesRWHM(ProjectModel):
 
 if __name__ == '__main__':
     # Parameters common to every model:
-    mu = np.pi / 4
+    mu = 0.
     kappa = 1.
     n = 1_000_000
+    save = False
+
+    """ Plot / describe the density"""
+    model = ProjectModel(mu=mu, kappa=kappa)
+    model.describe_mu(save=save)
+    model.describe_kappa(save=save)
 
     """ ACCEPT-REJECT """
     print("Accept-Reject simulation:")
     model = VonMisesAcceptReject(mu=mu, kappa=kappa, proposal='log')
     model.simulate(n=n)  # generates n observations under the Accept-Reject simulation;
-    model.hist()  # generates the histogram of the above observations;
+    model.hist(save=save)  # generates the histogram of the above observations;
 
     """ RANDOM WALK HASTINGS-METROPOLIS """
     # Parameters exclusive to RWHM:
     x_init = 0
-    proposal_RWHM = 'gaussian'
-    # proposal_RWHM = 'uniform'
+    proposal_RWHM = 'gaussian'  # 'gaussian' or 'uniform'
     sig = 5.5
 
     print("\nRandom Walk Hastings-Metropolis simulation:")

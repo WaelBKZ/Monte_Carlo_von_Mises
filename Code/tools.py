@@ -66,8 +66,7 @@ def von_mises_unif(mu=0., kappa=1., n=1):
 def von_mises_log(mu=0., kappa=1., n=1):
     """
     This function simulates a von Mises distribution using the
-    rejection sampler based on a uniform distribution on [-pi, pi]
-    as proposal distribution.
+    rejection sampler based on a combination of log-concave/convexe functions.
 
     :param float mu: mu
     :param float kappa: kappa
