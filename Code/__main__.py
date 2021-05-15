@@ -192,18 +192,10 @@ class VonMisesAcceptReject(ProjectModel):
 
         n = 1_000_000
         kappa = np.linspace(0, 50, 300)
-        rate = []
-
-        for val in kappa:
-            if self.proposal == 'uniform':
-                rate.append(von_mises_unif_acceptance(kappa=val, n=n))
-            elif self.proposal == 'cauchy':
-                rate.append(von_mises_cauchy_acceptance(kappa=val, n=n))
-            else:
-                rate.append(0)
 
         fig, ax = plt.subplots(figsize=(10, 5))
-        ax.plot(kappa, rate, 'r-', lw=1)
+        ax.plot(kappa, [von_mises_cauchy_acceptance(kappa=val, n=n) for val in kappa], 'b-', lw=1, label='cauchy')
+        ax.plot(kappa, [von_mises_unif_acceptance(kappa=val, n=n) for val in kappa], 'r-', lw=1, label='uniforme')
         ax.set_yticks([0,  25, 50, 75, 100])
 
         ax.grid(True, linewidth=0.5, color='grey', linestyle='-')
@@ -213,7 +205,7 @@ class VonMisesAcceptReject(ProjectModel):
         plt.legend()
         plt.show()
         if save:
-            fig.savefig('images/acceptance_rate_' + self.proposal + '.png')
+            fig.savefig('images/acceptance_rate.png')
 
 
 class VonMisesRWHM(ProjectModel):
@@ -302,26 +294,20 @@ if __name__ == '__main__':
     mu = 0.
     kappa = 3.
     n = 1_000_000
-    save = False
+    proposal = 'cauchy'
+    save = True
 
     """ DESCRIBE DENSITY """
     model = VonMisesAcceptReject()
-    model.describe_mu(save=save)
-    model.describe_kappa(save=save)
-    model.describe_simulation(save=save)
+    model.describe_mu(save=save)  # plots the density for different values of mu
+    model.describe_kappa(save=save)  # plots the density for different values of kappa
+    model.describe_simulation(save=save)  # plots the simulation for different values of n
+    model.acceptance_rate_simulation(save=save)  # plots the acceptance rate against kappa
 
-    """ ACCEPT-REJECT """
-    model = VonMisesAcceptReject()
+    """ SIMULATE """
+    model = VonMisesAcceptReject(mu=mu, kappa=kappa, proposal=proposal)
     model.simulate(n=n)  # generates n observations under the Accept-Reject simulation;
     model.hist(save=save)  # generates the histogram of the above observations;
-
-    """ DESCRIBE ACCEPT-REJECT : UNIFORM """
-    model = VonMisesAcceptReject(mu=mu, kappa=kappa, proposal='uniform')
-    model.acceptance_rate_simulation(save=save)
-
-    """ DESCRIBE ACCEPT-REJECT : CAUCHY """
-    model = VonMisesAcceptReject(mu=mu, kappa=kappa, proposal='cauchy')
-    model.acceptance_rate_simulation(save=save)
 
     """ RANDOM WALK HASTINGS-METROPOLIS """
     # Parameters exclusive to RWHM:
@@ -329,7 +315,7 @@ if __name__ == '__main__':
     proposal_RWHM = 'gaussian'  # 'gaussian' or 'uniform'
     sig = 5.5
 
-    model = VonMisesRWHM(mu=mu, kappa=kappa, x_init=x_init, proposal='cauchy', proposal_RWHM=proposal_RWHM, sig=sig)
+    model = VonMisesRWHM(mu=mu, kappa=kappa, x_init=x_init, proposal=proposal, proposal_RWHM=proposal_RWHM, sig=sig)
     # model.simulate(n=n)  # generates n observations under the Random Walk Hastings-Metropolis simulation;
     # model.hist()  # generates the histogram of the above observations;
 
