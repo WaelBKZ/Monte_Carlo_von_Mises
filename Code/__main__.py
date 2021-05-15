@@ -32,9 +32,9 @@ class ProjectModel:
             # standard deviation (gaussian) or size of the uniform distribution wished for our random walk proposal;
             self.sig = sig
 
-            # number of acceptances and acceptation rate of the model, both initialized at 0;
+            # number of acceptances and acceptance rate of the model, both initialized at 0;
             self.n_accept = 0
-            self.acceptation_rate = 0
+            self.acceptance_rate = 0
 
         # number of observations the simulation will predict; 0 before assignation;
         self.number_observations = 0
@@ -125,8 +125,8 @@ class ProjectModel:
 
         ax.text(3.85, 0.15,
                 f'proposal: {self.proposal}\n\n'
-                f'mu:         {self.mu:.3f}\n'
-                f'kappa:    {self.kappa:.3f}\n'
+                f'\u03BC:            {self.mu:.3f}\n'
+                f'\u03BA:            {self.kappa:.3f}\n'
                 f'n:       {self.number_observations:.1e}',
                 style='italic',
                 bbox={'facecolor': 'white', 'alpha': 0.5, 'pad': 10})
@@ -134,8 +134,6 @@ class ProjectModel:
         ax.set_title(f'Von Mises simulation : {self.__class__.__name__}.')
         plt.legend()
         plt.show()
-        if save:
-            fig.savefig('images/simulation_' + self.proposal + '.png')
 
 
 class VonMisesAcceptReject(ProjectModel):
@@ -158,6 +156,64 @@ class VonMisesAcceptReject(ProjectModel):
         else:
             raise NotImplementedError('Wrong proposal.')
         return self.results
+
+    def describe_simulation(self, save=False):
+        """ This function plots the simulation of a von-Mises distribution for different values of n """
+
+        n = [10_000, 100_000, 1_000_000]
+
+        fig, ax = plt.subplots(1, 3, figsize=(12, 5), sharey=True)
+        i = 0
+        x = np.linspace(-np.pi, np.pi, 300)
+        for val in n:
+            self.simulate(n=val)
+            ax[i].hist(self.results, bins=200, density=True, color='grey')
+            ax[i].plot(x, vonmises.pdf(x, self.kappa, loc=self.mu), 'r-', lw=1, label='theoretical')
+            ax[i].plot([-np.pi, np.pi], 2 * [vonmises.pdf(x, self.kappa, loc=self.mu).max()], 'b-', lw=1, label='proposal')
+            ax[i].set_ylim([0., None])  # On impose que l'axe des ordonnées commence par la valeur 0.
+            ax[i].set_xticks([-3.14, 0.,  3.14])  # On impose les valeurs de la légende en abscisse
+            ax[i].title.set_text(f'n = {val:.1e}')
+            i += 1
+
+        ax[0].locator_params(axis="y", nbins=4)
+        # On efface les axes des ordonnées
+        ax[1].get_yaxis().set_visible(False)
+        ax[2].get_yaxis().set_visible(False)
+
+        fig.suptitle(f'Von-Mises  (\u03BC = {self.mu},  \u03BA = {self.kappa})')
+        plt.legend(prop={'size': 8})
+        plt.show()
+        if save:
+            fig.savefig('images/describe_simulation.png')
+
+    def acceptance_rate_simulation(self, save=True):
+        """ This function plots the acceptance rate of the rejection test for different values of kappa
+        given a proposal distribution """
+
+        n = 1_000_000
+        kappa = np.linspace(0, 50, 300)
+        rate = []
+
+        for val in kappa:
+            if self.proposal == 'uniform':
+                rate.append(von_mises_unif_acceptance(kappa=val, n=n))
+            elif self.proposal == 'log':
+                rate.append(von_mises_log_acceptance(kappa=val, n=n))
+            else:
+                rate.append(0)
+
+        fig, ax = plt.subplots(figsize=(10, 5))
+        ax.plot(kappa, rate, 'r-', lw=1)
+        ax.set_yticks([0,  25, 50, 75, 100])
+
+        ax.grid(True, linewidth=0.5, color='grey', linestyle='-')
+        ax.set_xlabel("\u03BA")
+        ax.set_ylabel("Acceptance rate")
+        ax.set_title("Acceptance rate : " + self.proposal)
+        plt.legend()
+        plt.show()
+        if save:
+            fig.savefig('images/acceptance_rate_' + self.proposal + '.png')
 
 
 class VonMisesRWHM(ProjectModel):
@@ -213,8 +269,8 @@ class VonMisesRWHM(ProjectModel):
         for i in range(1, n):  # we realize (n-1) iterations of the Markov Chain
             x[i] = self.iter(x[i - 1])
 
-        self.acceptation_rate = self.n_accept / n
-        print(f'Acceptation rate: {self.acceptation_rate} %.')  # should be calibrated between 25% and 40%;
+        self.acceptance_rate = self.n_accept / n
+        print(f'Acceptance rate: {self.acceptance_rate} %.')  # should be calibrated between 25% and 40%;
 
         self.results = x
         return self.results
@@ -248,16 +304,24 @@ if __name__ == '__main__':
     n = 1_000_000
     save = False
 
-    """ Plot / describe the density"""
-    model = ProjectModel(mu=mu, kappa=kappa)
+    """ DESCRIBE DENSITY """
+    model = VonMisesAcceptReject()
     model.describe_mu(save=save)
     model.describe_kappa(save=save)
+    model.describe_simulation(save=save)
 
     """ ACCEPT-REJECT """
-    print("Accept-Reject simulation:")
     model = VonMisesAcceptReject(mu=mu, kappa=kappa, proposal='log')
     model.simulate(n=n)  # generates n observations under the Accept-Reject simulation;
     model.hist(save=save)  # generates the histogram of the above observations;
+
+    """ DESCRIBE ACCEPT-REJECT : UNIFORM """
+    model = VonMisesAcceptReject(mu=mu, kappa=kappa, proposal='uniform')
+    model.acceptance_rate_simulation(save=save)
+
+    """ DESCRIBE ACCEPT-REJECT : LOG """
+    model = VonMisesAcceptReject(mu=mu, kappa=kappa, proposal='log')
+    model.acceptance_rate_simulation(save=save)
 
     """ RANDOM WALK HASTINGS-METROPOLIS """
     # Parameters exclusive to RWHM:
@@ -265,7 +329,6 @@ if __name__ == '__main__':
     proposal_RWHM = 'gaussian'  # 'gaussian' or 'uniform'
     sig = 5.5
 
-    print("\nRandom Walk Hastings-Metropolis simulation:")
     model = VonMisesRWHM(mu=mu, kappa=kappa, x_init=x_init, proposal='log', proposal_RWHM=proposal_RWHM, sig=sig)
     model.simulate(n=n)  # generates n observations under the Random Walk Hastings-Metropolis simulation;
     model.hist()  # generates the histogram of the above observations;
