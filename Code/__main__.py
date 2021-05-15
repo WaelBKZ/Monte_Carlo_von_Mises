@@ -10,14 +10,14 @@ class ProjectModel:
     Parent class to all our project models classes, gathering common methods and constructor for every Von Mises models.
     """
 
-    def __init__(self, mu=0., kappa=1., x_init=0., proposal='log', proposal_RWHM='gaussian', sig=2.):
+    def __init__(self, mu=0., kappa=1., x_init=0., proposal='cauchy', proposal_RWHM='gaussian', sig=2.):
         # mu parameter
         self.mu = mu
 
         # kappa parameter
         self.kappa = kappa
 
-        # propsed distribution for the rejection sampling; can be either 'log' or 'uniform'
+        # propsed distribution for the rejection sampling; can be either 'cauchy' or 'uniform'
         self.proposal = proposal
 
         if self.__class__.__name__ == 'VonMisesRWHM':
@@ -149,8 +149,8 @@ class VonMisesAcceptReject(ProjectModel):
         """
 
         self.number_observations = n
-        if self.proposal == 'log':
-            self.results = von_mises_log(mu=self.mu, kappa=self.kappa, n=n)
+        if self.proposal == 'cauchy':
+            self.results = von_mises_cauchy(mu=self.mu, kappa=self.kappa, n=n)
         elif self.proposal == 'uniform':
             self.results = von_mises_unif(mu=self.mu, kappa=self.kappa, n=n)
         else:
@@ -197,8 +197,8 @@ class VonMisesAcceptReject(ProjectModel):
         for val in kappa:
             if self.proposal == 'uniform':
                 rate.append(von_mises_unif_acceptance(kappa=val, n=n))
-            elif self.proposal == 'log':
-                rate.append(von_mises_log_acceptance(kappa=val, n=n))
+            elif self.proposal == 'cauchy':
+                rate.append(von_mises_cauchy_acceptance(kappa=val, n=n))
             else:
                 rate.append(0)
 
@@ -300,7 +300,7 @@ class VonMisesRWHM(ProjectModel):
 if __name__ == '__main__':
     # Parameters common to every model:
     mu = 0.
-    kappa = 1.
+    kappa = 3.
     n = 1_000_000
     save = False
 
@@ -311,7 +311,7 @@ if __name__ == '__main__':
     model.describe_simulation(save=save)
 
     """ ACCEPT-REJECT """
-    model = VonMisesAcceptReject(mu=mu, kappa=kappa, proposal='log')
+    model = VonMisesAcceptReject()
     model.simulate(n=n)  # generates n observations under the Accept-Reject simulation;
     model.hist(save=save)  # generates the histogram of the above observations;
 
@@ -319,8 +319,8 @@ if __name__ == '__main__':
     model = VonMisesAcceptReject(mu=mu, kappa=kappa, proposal='uniform')
     model.acceptance_rate_simulation(save=save)
 
-    """ DESCRIBE ACCEPT-REJECT : LOG """
-    model = VonMisesAcceptReject(mu=mu, kappa=kappa, proposal='log')
+    """ DESCRIBE ACCEPT-REJECT : CAUCHY """
+    model = VonMisesAcceptReject(mu=mu, kappa=kappa, proposal='cauchy')
     model.acceptance_rate_simulation(save=save)
 
     """ RANDOM WALK HASTINGS-METROPOLIS """
@@ -329,9 +329,9 @@ if __name__ == '__main__':
     proposal_RWHM = 'gaussian'  # 'gaussian' or 'uniform'
     sig = 5.5
 
-    model = VonMisesRWHM(mu=mu, kappa=kappa, x_init=x_init, proposal='log', proposal_RWHM=proposal_RWHM, sig=sig)
-    model.simulate(n=n)  # generates n observations under the Random Walk Hastings-Metropolis simulation;
-    model.hist()  # generates the histogram of the above observations;
+    model = VonMisesRWHM(mu=mu, kappa=kappa, x_init=x_init, proposal='cauchy', proposal_RWHM=proposal_RWHM, sig=sig)
+    # model.simulate(n=n)  # generates n observations under the Random Walk Hastings-Metropolis simulation;
+    # model.hist()  # generates the histogram of the above observations;
 
     """ SANITY CHECK FOR RWHM """
     # model.graph_autocorrelation()
