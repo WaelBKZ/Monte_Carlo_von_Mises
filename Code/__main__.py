@@ -41,7 +41,7 @@ class ProjectModel:
     def estimate_params_MCMC_MLE(self, n=100, m=10_000):
         """ This function estimates the parameters of a von Mises ditribution by MCMC MLE """
 
-        def log_likelyhood(params):
+        def log_likelihood(params):
             mu, kappa = params
             res_1 = kappa * np.cos(sample - mu) - np.cos(sample)
             res_2 = np.exp(kappa * np.cos(sample_ - mu) - np.cos(sample_))
@@ -53,7 +53,7 @@ class ProjectModel:
         for i in range(n):
             sample = self.simulate(n=m)
             sample_ = model_.simulate(n=m)
-            params_estimated[i] = minimize(log_likelyhood, np.array([0., 1.])).x
+            params_estimated[i] = minimize(log_likelihood, np.array([0., 1.])).x
 
         mu_, kappa_ = params_estimated.mean(axis=0)
         mu_std, kappa_std = params_estimated.std(axis=0)
@@ -321,7 +321,7 @@ class VonMisesRWHM(ProjectModel):
 
 if __name__ == '__main__':
     # Parameters common to every model:
-    mu = 0.
+    mu = np.pi / 4
     kappa = 3.
     n = 1_000_000
     proposal = 'cauchy'
