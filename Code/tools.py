@@ -17,6 +17,18 @@ def uniform_pi(n=1):
     return uniform(n=n) * 2 * np.pi - np.pi
 
 
+def wrapped_cauchy(mu=0., kappa=1., n=1):
+    """ This function simulates a wrapped cauchy distribution with
+     an optimal envelope for the rejection sampling test on a von Mises distribution """
+
+    theta = uniform_pi(n=n)
+    tau = 1 + np.sqrt(1 + 4 * kappa ** 2)
+    rho = (tau - np.sqrt(2 * tau)) / (2 * kappa)
+
+    von_mises = np.sign(theta) * (np.arccos(((1 + rho**2) * np.cos(theta) - 2 * rho) / (1 + rho**2 - 2*rho*np.cos(theta))) - np.pi)
+    return (von_mises + np.pi + mu) % (2*np.pi) - np.pi
+
+
 def normal(mean=0., std=1., n=1):
     """ This function simulates a normal distribution """
 
