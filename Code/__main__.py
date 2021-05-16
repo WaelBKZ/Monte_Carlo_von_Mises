@@ -7,53 +7,48 @@ from tools import *
 
 class ProjectModel:
     """
-    Parent class to all our project models classes, gathering common methods and constructor for every Von Mises models.
+    Parent class to all our project models classes, gathering common methods and constructor for every von Mises models.
     """
 
     def __init__(self, mu=0., kappa=1., x_init=0., proposal='cauchy', proposal_RWHM='gaussian', sig=2.):
-        # mu parameter
         self.mu = mu
-
-        # kappa parameter
         self.kappa = kappa
 
-        # propsed distribution for the rejection sampling; can be either 'cauchy' or 'uniform'
+        # Proposed distribution: 'cauchy' or 'uniform'
         self.proposal = proposal
 
         if self.__class__.__name__ == 'VonMisesRWHM':
-            # the following objects are only built if the model is a Random Walk Hasting-Metropolis (RWHM) model;
+            # The following attributes are built if the object is initialized with the class 'VonMisesRWHM'
 
-            # initialisation value of the Markov chain;
+            # Initialisation value of the Markov chain;
             self.x_init = x_init
 
-            # proposed distribution for the random walk; can be either 'gaussian' or 'uniform';
+            # Proposed distribution for the random walk: 'gaussian' or 'uniform'
             self.proposal_RWHM = proposal_RWHM
 
-            # standard deviation (gaussian) or size of the uniform distribution wished for our random walk proposal;
+            # Standard deviation (gaussian) or size of the uniform distribution wished for our random walk proposal;
             self.sig = sig
 
-            # number of acceptances and acceptance rate of the model, both initialized at 0;
             self.n_accept = 0
             self.acceptance_rate = 0
 
-        # number of observations the simulation will predict; 0 before assignation;
-        self.number_observations = 0
-
-        # results of the simulation;
+        # Number of observations the simulation will predict
+        self.number_observations = None
         self.results = None
 
     def describe_mu(self, save=False):
-        """ This function plots the density of a von-Mises distribution for different values of mu """
+        """ This function plots the density of a von Mises distribution for different values of mu """
 
         mu = [-np.pi/2, 0, np.pi/2]
+        x = np.linspace(-np.pi, np.pi, 300)
 
         fig, ax = plt.subplots(1, 3, figsize=(12, 5), sharey=True)
         i = 0
-        x = np.linspace(-np.pi, np.pi, 300)
+
         for val in mu:
-            ax[i].plot(x, vonmises.pdf(x, self.kappa, loc=val), 'r-', lw=1)  # On trace
-            ax[i].set_ylim([0., None])  # On impose que l'axe des ordonnées commence par la valeur 0.
-            ax[i].set_xticks([-3.14, 0.,  3.14])  # On impose les valeurs de la légende en abscisse
+            ax[i].plot(x, vonmises.pdf(x, self.kappa, loc=val), 'r-', lw=1)
+            ax[i].set_ylim([0., None])
+            ax[i].set_xticks([-3.14, 0.,  3.14])
             i += 1
 
         ax[0].title.set_text(f'\u03BC = -\u03C0/2')
@@ -61,40 +56,39 @@ class ProjectModel:
         ax[2].title.set_text(f'\u03BC = \u03C0/2')
 
         ax[0].locator_params(axis="y", nbins=4)
-        # On efface les axes des ordonnées
         ax[1].get_yaxis().set_visible(False)
         ax[2].get_yaxis().set_visible(False)
 
-        fig.suptitle(f'Von-Mises  (\u03BA = {self.kappa})')
+        fig.suptitle(f'von Mises  (\u03BA = {self.kappa})')
         plt.show()
         if save:
             fig.savefig('images/describe_mu.png')
 
     def describe_kappa(self, save=False):
-        """ This function plots the density of a von-Mises distribution for different values of kappa """
+        """ This function plots the density of a von Mises distribution for different values of kappa """
 
         kappa = [0, 0.1, 0.5, 1.5, 4, 20]
-        fig, ax = plt.subplots(2, 3, figsize=(13, 7))
-
-        i = 1
         x = np.linspace(-np.pi, np.pi, 300)
 
-        ax[0, 0].plot(x, len(x) * [1 / (2 * np.pi)], 'r-', lw=1)  # On trace
-        ax[0, 0].set_ylim([0., None])  # On impose que l'axe des ordonnées commence par la valeur 0.
-        ax[0, 0].set_xticks([-3.14, 0., 3.14])  # On impose les valeurs de la légende en abscisse
+        fig, ax = plt.subplots(2, 3, figsize=(13, 7))
+        i = 1
+
+        ax[0, 0].plot([-np.pi, np.pi], 2 * [1 / (2 * np.pi)], 'r-', lw=1)
+        ax[0, 0].set_ylim([0., None])
+        ax[0, 0].set_xticks([-3.14, 0., 3.14])
         ax[0, 0].locator_params(axis="y", nbins=4)
         ax[0, 0].title.set_text(f'\u03BA = {0}')
 
         for val in kappa:
             if val != 0:
-                ax[i//3, i % 3].plot(x, vonmises.pdf(x, val, loc=0.), 'r-', lw=1)  # On trace
-                ax[i//3, i % 3].set_ylim([0., None])  # On impose que l'axe des ordonnées commence par la valeur 0.
-                ax[i//3, i % 3].set_xticks([-3.14, 0.,  3.14])  # On impose les valeurs de la légende en abscisse
+                ax[i//3, i % 3].plot(x, vonmises.pdf(x, val, loc=0.), 'r-', lw=1)
+                ax[i//3, i % 3].set_ylim([0., None])
+                ax[i//3, i % 3].set_xticks([-3.14, 0.,  3.14])
                 ax[i//3, i % 3].locator_params(axis="y", nbins=4)
                 ax[i//3, i % 3].title.set_text(f'\u03BA = {val}')
                 i += 1
 
-        fig.suptitle('Von-Mises (\u03BC = 0)')
+        fig.suptitle('von Mises (\u03BC = 0)')
         fig.tight_layout(pad=1.0)
         plt.show()
         if save:
@@ -104,11 +98,9 @@ class ProjectModel:
         raise NotImplementedError("The method should be defined in each child class.")
         pass
 
-    def hist(self, save=False):
+    def hist(self):
         """
-        Generates and prints the graph of the observations made under the simulation of our model.
-        User needs to run {self}.simulation(n) method first.
-        :return None:
+        Generates and plots the graph of the observations made under the simulation of our model.
         """
 
         if self.results is None:
@@ -131,21 +123,22 @@ class ProjectModel:
                 style='italic',
                 bbox={'facecolor': 'white', 'alpha': 0.5, 'pad': 10})
 
-        ax.set_title(f'Von Mises simulation : {self.__class__.__name__}.')
+        ax.set_title(f'von Mises simulation : {self.__class__.__name__}.')
         plt.legend()
         plt.show()
 
 
 class VonMisesAcceptReject(ProjectModel):
     """
-    Accept-Reject simulation for Von Mises distribution.
+    Accept-Reject simulation for von Mises distribution.
     """
 
     def simulate(self, n=1):
         """
-        Generates n observation(s) under our Von Mises Accept-Reject simulation.
-        :param int n: number of observation(s) wished.
-        :return list: list of observation(s), floats.
+        Generates n simulations under our von Mises Accept-Reject simulation.
+
+        :param int n: number of simulations
+        :return array: list of simulations
         """
 
         self.number_observations = n
@@ -158,29 +151,32 @@ class VonMisesAcceptReject(ProjectModel):
         return self.results
 
     def describe_simulation(self, save=False):
-        """ This function plots the simulation of a von-Mises distribution for different values of n """
+        """ This function plots the simulation of a von Mises distribution for different values of n """
 
         n = [10_000, 100_000, 1_000_000]
+        x = np.linspace(-np.pi, np.pi, 300)
 
         fig, ax = plt.subplots(1, 3, figsize=(12, 5), sharey=True)
         i = 0
-        x = np.linspace(-np.pi, np.pi, 300)
+
         for val in n:
             self.simulate(n=val)
             ax[i].hist(self.results, bins=200, density=True, color='grey')
             ax[i].plot(x, vonmises.pdf(x, self.kappa, loc=self.mu), 'r-', lw=1, label='theoretical')
-            ax[i].plot([-np.pi, np.pi], 2 * [vonmises.pdf(x, self.kappa, loc=self.mu).max()], 'b-', lw=1, label='proposal')
-            ax[i].set_ylim([0., None])  # On impose que l'axe des ordonnées commence par la valeur 0.
-            ax[i].set_xticks([-3.14, 0.,  3.14])  # On impose les valeurs de la légende en abscisse
+
+            if self.proposal == 'uniform':
+                ax[i].plot([-np.pi, np.pi], 2 * [vonmises.pdf(x, self.kappa, loc=self.mu).max()], 'b-', lw=1, label='proposal')
+
+            ax[i].set_ylim([0., None])
+            ax[i].set_xticks([-3.14, 0.,  3.14])
             ax[i].title.set_text(f'n = {val:.1e}')
             i += 1
 
         ax[0].locator_params(axis="y", nbins=4)
-        # On efface les axes des ordonnées
         ax[1].get_yaxis().set_visible(False)
         ax[2].get_yaxis().set_visible(False)
 
-        fig.suptitle(f'Von-Mises  (\u03BC = {self.mu},  \u03BA = {self.kappa})')
+        fig.suptitle(f'von Mises  (\u03BC = {self.mu},  \u03BA = {self.kappa})')
         plt.legend(prop={'size': 8})
         plt.show()
         if save:
@@ -188,20 +184,20 @@ class VonMisesAcceptReject(ProjectModel):
 
     def acceptance_rate_simulation(self, save=True):
         """ This function plots the acceptance rate of the rejection test for different values of kappa
-        given a proposal distribution """
+        for each proposal distribution """
 
         n = 1_000_000
         kappa = np.linspace(0, 50, 300)
 
         fig, ax = plt.subplots(figsize=(10, 5))
-        ax.plot(kappa, [von_mises_cauchy_acceptance(kappa=val, n=n) for val in kappa], 'b-', lw=1, label='cauchy')
-        ax.plot(kappa, [von_mises_unif_acceptance(kappa=val, n=n) for val in kappa], 'r-', lw=1, label='uniforme')
+        ax.plot(kappa, [von_mises_cauchy_acceptance(kappa=val, n=n) for val in kappa], 'b-', lw=1, label='wrapped cauchy')
+        ax.plot(kappa, [von_mises_unif_acceptance(kappa=val, n=n) for val in kappa], 'r-', lw=1, label='uniform')
         ax.set_yticks([0,  25, 50, 75, 100])
 
         ax.grid(True, linewidth=0.5, color='grey', linestyle='-')
         ax.set_xlabel("\u03BA")
         ax.set_ylabel("Acceptance rate")
-        ax.set_title("Acceptance rate : " + self.proposal)
+        ax.set_title("Acceptance rate")
         plt.legend()
         plt.show()
         if save:
@@ -210,7 +206,7 @@ class VonMisesAcceptReject(ProjectModel):
 
 class VonMisesRWHM(ProjectModel):
     """
-    Random Walk Hastings-Metropolis (RWHM) simulation for Von Mises distribution.
+    Random Walk Hastings-Metropolis (RWHM) simulation for von Mises distribution.
     """
 
     @staticmethod
@@ -248,9 +244,9 @@ class VonMisesRWHM(ProjectModel):
 
     def simulate(self, n=100_000):
         """
-        Generates n observation(s) under our Von Mises Random Walk Hastings-Metropolis simulation.
-        :param int n: number of observation(s) wished.
-        :return list: list of observation(s), floats.
+        Generates n simulations under our von Mises Random Walk Hastings-Metropolis simulation.
+        :param int n: number of simulations
+        :return list: list of simulations
         """
 
         self.number_observations = n
@@ -295,9 +291,9 @@ if __name__ == '__main__':
     kappa = 3.
     n = 1_000_000
     proposal = 'cauchy'
-    save = True
+    save = False
 
-    """ DESCRIBE DENSITY """
+    """ DESCRIBE """
     model = VonMisesAcceptReject()
     model.describe_mu(save=save)  # plots the density for different values of mu
     model.describe_kappa(save=save)  # plots the density for different values of kappa
@@ -307,7 +303,7 @@ if __name__ == '__main__':
     """ SIMULATE """
     model = VonMisesAcceptReject(mu=mu, kappa=kappa, proposal=proposal)
     model.simulate(n=n)  # generates n observations under the Accept-Reject simulation;
-    model.hist(save=save)  # generates the histogram of the above observations;
+    model.hist()  # generates the histogram of the above observations;
 
     """ RANDOM WALK HASTINGS-METROPOLIS """
     # Parameters exclusive to RWHM:

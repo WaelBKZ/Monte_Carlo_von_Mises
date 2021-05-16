@@ -104,14 +104,14 @@ def von_mises_cauchy(mu=0., kappa=1., n=1):
     return (von_mises + np.pi + mu) % (2*np.pi) - np.pi
 
 
-def von_mises_unif_acceptance(kappa=1., n=10_000):
+def von_mises_unif_acceptance(kappa=1., n=100_000):
     """ This function estimates the acceptance rate according to a uniform distribution
     as proposal distribution.
 
     :param float kappa: kappa
-    :param int n: number of simulation
+    :param int n: number of simulations
 
-    :return float: estimation of the acceptance rate
+    :return float: estimation of the acceptance rate in percentage
     """
 
     # Compute a uniform on [-pi, pi]
@@ -125,7 +125,7 @@ def von_mises_unif_acceptance(kappa=1., n=10_000):
     return 100 * von_mises.shape[0] / n
 
 
-def von_mises_cauchy_acceptance(kappa=1., n=1):
+def von_mises_cauchy_acceptance(kappa=1., n=100_000):
     """
     This function estimates the acceptance rate according to a wrapped cauchy distribution
     as proposal distribution.
@@ -133,9 +133,9 @@ def von_mises_cauchy_acceptance(kappa=1., n=1):
 
     :param float mu: mu
     :param float kappa: kappa
-    :param int n: output size
+    :param int n: number of simulations
 
-    :return float: estimation of the acceptance rate
+    :return float: estimation of the acceptance rate in percentage
     """
 
     if kappa != 0:
@@ -166,7 +166,7 @@ def von_mises_density(x, mu=0., kappa=1.):
     :param float mu: mu
     :param float kappa: kappa
 
-    :return float: Von Mises density evaluated on x (up to a constant multiplier).
+    :return float: von Mises density evaluated on x (up to a constant multiplier).
     """
     return np.exp(kappa * np.cos(x - mu)) * (-np.pi <= x <= np.pi)
 
