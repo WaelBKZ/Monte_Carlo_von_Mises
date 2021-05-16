@@ -2,6 +2,7 @@ import logging
 import matplotlib.pyplot as plt
 from scipy.ndimage import gaussian_filter1d
 from scipy.stats import vonmises
+from scipy.optimize import minimize
 from statsmodels.graphics.tsaplots import plot_acf
 from tools import *
 
@@ -36,6 +37,31 @@ class ProjectModel:
         # Number of observations the simulation will predict
         self.number_observations = None
         self.results = None
+
+    def estimate_params_MCMC_MLE(self, n=100, m=10_000):
+        """ This function estimates the parameters of a von Mises ditribution by MCMC MLE """
+
+        def log_likelyhood(params):
+            mu, kappa = params
+            res_1 = kappa * np.cos(sample - mu) - np.cos(sample)
+            res_2 = np.exp(kappa * np.cos(sample_ - mu) - np.cos(sample_))
+            return -res_1.mean() + np.log(res_2.mean())
+
+        params_estimated = np.zeros((n, 2))
+        model_ = VonMisesAcceptReject(mu=0., kappa=1.)
+
+        for i in range(n):
+            sample = self.simulate(n=m)
+            sample_ = model_.simulate(n=m)
+            params_estimated[i] = minimize(log_likelyhood, np.array([0., 1.])).x
+
+        mu_, kappa_ = params_estimated.mean(axis=0)
+        mu_std, kappa_std = params_estimated.std(axis=0)
+
+        print(f"Parameters:\n\u03BC = {mu_:.5f}  [{mu_ - 1.96 * mu_std / n**0.5:.5f}; {mu_ + 1.96 * mu_std / n**0.5:.5f}]")
+        print(f"\u03BA = {kappa_:.5f}  [{kappa_ - 1.96 * kappa_std / n**0.5:.5f}; {kappa_ + 1.96 * kappa_std / n**0.5:.5f}]")
+
+        return np.array([[mu_, mu_std], [kappa_, kappa_std]])
 
     def describe_mu(self, save=False):
         """ This function plots the density of a von Mises distribution for different values of mu """
@@ -302,10 +328,11 @@ if __name__ == '__main__':
     save = False
 
     """ DESCRIBE """
-    model = VonMisesAcceptReject()
+    model = VonMisesAcceptReject(mu=mu, kappa=kappa)
     model.describe_mu(save=save)  # plots the density for different values of mu
     model.describe_kappa(save=save)  # plots the density for different values of kappa
     model.describe_simulation(save=save)  # plots the simulation for different values of n
+    model.estimate_params_MCMCMLE()  # estimates the parameters of the model by MCMC MLE
     VonMisesAcceptReject(proposal='uniform').describe_simulation(save=save)  # plots the simulation for different values of n
     model.acceptance_rate_simulation(save=save)  # plots the acceptance rate against kappa
 
