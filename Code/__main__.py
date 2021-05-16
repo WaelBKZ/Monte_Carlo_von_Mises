@@ -62,7 +62,7 @@ class ProjectModel:
         fig.suptitle(f'von Mises  (\u03BA = {self.kappa})')
         plt.show()
         if save:
-            fig.savefig('images/describe_mu.png')
+            fig.savefig('Graphs/describe_mu.png')
 
     def describe_kappa(self, save=False):
         """ This function plots the density of a von Mises distribution for different values of kappa """
@@ -92,7 +92,7 @@ class ProjectModel:
         fig.tight_layout(pad=1.0)
         plt.show()
         if save:
-            fig.savefig('images/describe_kappa.png')
+            fig.savefig('Graphs/describe_kappa.png')
 
     def simulate(self, n=1):
         raise NotImplementedError("The method should be defined in each child class.")
@@ -180,7 +180,7 @@ class VonMisesAcceptReject(ProjectModel):
         plt.legend(prop={'size': 8})
         plt.show()
         if save:
-            fig.savefig('images/describe_simulation.png')
+            fig.savefig('Graphs/describe_simulation.png')
 
     def acceptance_rate_simulation(self, save=True):
         """ This function plots the acceptance rate of the rejection test for different values of kappa
@@ -201,7 +201,7 @@ class VonMisesAcceptReject(ProjectModel):
         plt.legend()
         plt.show()
         if save:
-            fig.savefig('images/acceptance_rate.png')
+            fig.savefig('Graphs/acceptance_rate.png')
 
 
 class VonMisesRWHM(ProjectModel):
