@@ -1,5 +1,6 @@
 import logging
 import matplotlib.pyplot as plt
+from scipy.ndimage import gaussian_filter1d
 from scipy.stats import vonmises
 from statsmodels.graphics.tsaplots import plot_acf
 from tools import *
@@ -167,6 +168,13 @@ class VonMisesAcceptReject(ProjectModel):
             if self.proposal == 'uniform':
                 ax[i].plot([-np.pi, np.pi], 2 * [vonmises.pdf(x, self.kappa, loc=self.mu).max()], 'b-', lw=1, label='proposal')
 
+            elif self.proposal == 'cauchy':
+                y, x = np.histogram(wrapped_cauchy(mu=self.mu, kappa=self.kappa, n=10_000_000),
+                                    bins=np.linspace(-np.pi, np.pi, 1_000), density=True)
+                y_, _ = np.histogram(von_mises_cauchy(mu=self.mu, kappa=self.kappa, n=10_000_000),
+                                     bins=np.linspace(-np.pi, np.pi, 1_000), density=True)
+                ax[i].plot((x[:-1] + x[1:]) / 2, (y_ / y).max() * gaussian_filter1d(y, sigma=10), 'b-', lw=1, label='proposal')
+
             ax[i].set_ylim([0., None])
             ax[i].set_xticks([-3.14, 0.,  3.14])
             ax[i].title.set_text(f'n = {val:.1e}')
@@ -176,11 +184,11 @@ class VonMisesAcceptReject(ProjectModel):
         ax[1].get_yaxis().set_visible(False)
         ax[2].get_yaxis().set_visible(False)
 
-        fig.suptitle(f'von Mises  (\u03BC = {self.mu},  \u03BA = {self.kappa})')
+        fig.suptitle(f'von Mises  (\u03BC = {self.mu},  \u03BA = {self.kappa},  proposal = {self.proposal})')
         plt.legend(prop={'size': 8})
         plt.show()
         if save:
-            fig.savefig('Graphs/describe_simulation.png')
+            fig.savefig('Graphs/describe_simulation_' + self.proposal + '.png')
 
     def acceptance_rate_simulation(self, save=True):
         """ This function plots the acceptance rate of the rejection test for different values of kappa
@@ -298,6 +306,7 @@ if __name__ == '__main__':
     model.describe_mu(save=save)  # plots the density for different values of mu
     model.describe_kappa(save=save)  # plots the density for different values of kappa
     model.describe_simulation(save=save)  # plots the simulation for different values of n
+    VonMisesAcceptReject(proposal='uniform').describe_simulation(save=save)  # plots the simulation for different values of n
     model.acceptance_rate_simulation(save=save)  # plots the acceptance rate against kappa
 
     """ SIMULATE """
