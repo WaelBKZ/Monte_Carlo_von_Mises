@@ -39,7 +39,13 @@ class ProjectModel:
         self.results = None
 
     def estimate_params_MCMC_MLE(self, n=500, m=10_000):
-        """ This function estimates the parameters of a von Mises ditribution by MCMC MLE """
+        """ This function estimates the parameters of a von Mises ditribution by MCMC MLE
+
+        :param int n: the number of simulations to estimate the  parameters (mu, kappa)
+        :param int m: the number of simulations to estimate the log-likelihood
+
+        :return array (2, 2): numpy array of the parameters and the estimated std
+        """
 
         def log_likelihood(params):
             mu, kappa = params
@@ -59,7 +65,7 @@ class ProjectModel:
         mu_std, kappa_std = params_estimated.std(axis=0) * np.sqrt(n / (n - 1))
 
         print(f"Parameters:\n\u03BC = {mu_:.5f}  [{mu_ - 1.96 * mu_std / n**0.5:.5f}, {mu_ + 1.96 * mu_std / n**0.5:.5f}]")
-        print(f"\u03BA = {kappa_:.5f}  [{kappa_ - 1.96 * kappa_std / n**0.5:.5f}, {kappa_ + 1.96 * kappa_std / n**0.5:.5f}]")
+        print(f"\u03BA = {kappa_:.5f}  [{kappa_ - 1.96 * kappa_std / n**0.5:.5f}, {kappa_ + 1.96 * kappa_std / n**0.5:.5f}]\n")
 
         return np.array([[mu_, mu_std], [kappa_, kappa_std]])
 
