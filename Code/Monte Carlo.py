@@ -38,7 +38,7 @@ class ProjectModel:
         self.number_observations = None
         self.results = None
 
-    def estimate_params_MCMC_MLE(self, n=100, m=10_000):
+    def estimate_params_MCMC_MLE(self, n=500, m=10_000):
         """ This function estimates the parameters of a von Mises ditribution by MCMC MLE """
 
         def log_likelihood(params):
@@ -56,10 +56,10 @@ class ProjectModel:
             params_estimated[i] = minimize(log_likelihood, np.array([0., 1.])).x
 
         mu_, kappa_ = params_estimated.mean(axis=0)
-        mu_std, kappa_std = params_estimated.std(axis=0)
+        mu_std, kappa_std = params_estimated.std(axis=0) * np.sqrt(n / (n - 1))
 
-        print(f"Parameters:\n\u03BC = {mu_:.5f}  [{mu_ - 1.96 * mu_std / n**0.5:.5f}; {mu_ + 1.96 * mu_std / n**0.5:.5f}]")
-        print(f"\u03BA = {kappa_:.5f}  [{kappa_ - 1.96 * kappa_std / n**0.5:.5f}; {kappa_ + 1.96 * kappa_std / n**0.5:.5f}]")
+        print(f"Parameters:\n\u03BC = {mu_:.5f}  [{mu_ - 1.96 * mu_std / n**0.5:.5f}, {mu_ + 1.96 * mu_std / n**0.5:.5f}]")
+        print(f"\u03BA = {kappa_:.5f}  [{kappa_ - 1.96 * kappa_std / n**0.5:.5f}, {kappa_ + 1.96 * kappa_std / n**0.5:.5f}]")
 
         return np.array([[mu_, mu_std], [kappa_, kappa_std]])
 
@@ -132,7 +132,7 @@ class ProjectModel:
 
         if self.results is None:
             logging.warning("No simulation has been launched yet: computing ...")
-            self.simulate(n=n)
+            self.simulate(n=1)
 
         plt.gcf().clear()
         fig = plt.figure(figsize=(10, 6))
@@ -321,8 +321,8 @@ class VonMisesRWHM(ProjectModel):
 
 if __name__ == '__main__':
     # Parameters common to every model:
-    mu = np.pi / 4
-    kappa = 3.
+    mu = 1.
+    kappa = 20.
     n = 1_000_000
     proposal = 'cauchy'
     save = False
@@ -332,14 +332,14 @@ if __name__ == '__main__':
     model.describe_mu(save=save)  # plots the density for different values of mu
     model.describe_kappa(save=save)  # plots the density for different values of kappa
     model.describe_simulation(save=save)  # plots the simulation for different values of n
+    VonMisesAcceptReject(mu=mu, kappa=kappa, proposal='uniform').describe_simulation(save=save)  # plots the simulation for different values of n
     model.estimate_params_MCMC_MLE()  # estimates the parameters of the model by MCMC MLE
-    VonMisesAcceptReject(mu=mu, proposal='uniform').describe_simulation(save=save)  # plots the simulation for different values of n
-    model.acceptance_rate_simulation(save=save)  # plots the acceptance rate against kappa
+    # model.acceptance_rate_simulation(save=save)  # plots the acceptance rate against kappa
 
     """ SIMULATE """
     model = VonMisesAcceptReject(mu=mu, kappa=kappa, proposal=proposal)
-    model.simulate(n=n)  # generates n observations under the Accept-Reject simulation;
-    model.hist()  # generates the histogram of the above observations;
+    model.simulate(n=n)  # generates n observations under the Accept-Reject simulation
+    model.hist()  # generates the histogram of the above observations
 
     """ RANDOM WALK HASTINGS-METROPOLIS """
     # Parameters exclusive to RWHM:
