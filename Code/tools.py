@@ -17,7 +17,7 @@ def uniform_pi(n=1):
     return uniform(n=n) * 2 * np.pi - np.pi
 
 
-def wrapped_cauchy(kappa=1., n=1):
+def wrapped_cauchy(mu=0., kappa=1., n=1):
     """ This function simulates a the optimal wrapped cauchy distribution given kappa"""
 
     tau = 1 + np.sqrt(1 + 4 * kappa ** 2)
@@ -26,7 +26,8 @@ def wrapped_cauchy(kappa=1., n=1):
 
     U = uniform(n=n)
     V = np.sign(uniform(n=n) - 0.5)
-    return V * np.arccos((1 + s * np.cos(np.pi * U)) / (s + np.cos(np.pi * U)))
+    sim = V * np.arccos((1 + s * np.cos(np.pi * U)) / (s + np.cos(np.pi * U)))
+    return (sim + np.pi + mu) % (2 * np.pi) - np.pi
 
 
 def normal(mean=0., std=1., n=1):
@@ -113,7 +114,7 @@ def von_mises_cauchy(mu=0., kappa=1., n=1):
     else:
         von_mises = uniform_pi(n=n)
 
-    return (von_mises + np.pi + mu) % (2*np.pi) - np.pi
+    return (von_mises + np.pi + mu) % (2 * np.pi) - np.pi
 
 
 def von_mises_unif_acceptance(kappa=1., n=100_000):

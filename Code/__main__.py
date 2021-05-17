@@ -210,7 +210,7 @@ class VonMisesAcceptReject(ProjectModel):
         ax[1].get_yaxis().set_visible(False)
         ax[2].get_yaxis().set_visible(False)
 
-        fig.suptitle(f'von Mises  (\u03BC = {self.mu},  \u03BA = {self.kappa},  proposal = {self.proposal})')
+        fig.suptitle(f'von Mises  (\u03BC = {self.mu:.3f},  \u03BA = {self.kappa:.3f},  proposal = {self.proposal})')
         plt.legend(prop={'size': 8})
         plt.show()
         if save:
@@ -332,8 +332,8 @@ if __name__ == '__main__':
     model.describe_mu(save=save)  # plots the density for different values of mu
     model.describe_kappa(save=save)  # plots the density for different values of kappa
     model.describe_simulation(save=save)  # plots the simulation for different values of n
-    model.estimate_params_MCMCMLE()  # estimates the parameters of the model by MCMC MLE
-    VonMisesAcceptReject(proposal='uniform').describe_simulation(save=save)  # plots the simulation for different values of n
+    model.estimate_params_MCMC_MLE()  # estimates the parameters of the model by MCMC MLE
+    VonMisesAcceptReject(mu=mu, proposal='uniform').describe_simulation(save=save)  # plots the simulation for different values of n
     model.acceptance_rate_simulation(save=save)  # plots the acceptance rate against kappa
 
     """ SIMULATE """
