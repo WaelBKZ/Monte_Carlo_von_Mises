@@ -297,6 +297,35 @@ class VonMisesRWHM(ProjectModel):
         self.results = x
         return self.results
 
+    def describe_simulation(self, save=False):
+        """ This function plots the simulation of a von Mises distribution for different values of n """
+
+        n = [10_000, 100_000, 1_000_000]
+        x = np.linspace(-np.pi, np.pi, 300)
+
+        fig, ax = plt.subplots(1, 3, figsize=(12, 5), sharey=True)
+        i = 0
+
+        for val in n:
+            self.simulate(n=val)
+            ax[i].hist(self.results, bins=200, density=True, color='grey')
+            ax[i].plot(x, vonmises.pdf(x, self.kappa, loc=self.mu), 'r-', lw=1, label='theoretical')
+
+            ax[i].set_ylim([0., None])
+            ax[i].set_xticks([-3.14, 0.,  3.14])
+            ax[i].title.set_text(f'n = {val:.1e}')
+            i += 1
+
+        ax[0].locator_params(axis="y", nbins=4)
+        ax[1].get_yaxis().set_visible(False)
+        ax[2].get_yaxis().set_visible(False)
+
+        fig.suptitle(f'von Mises  (\u03BC = {self.mu:.3f},  \u03BA = {self.kappa:.3f},  proposal_RWHM = {self.proposal_RWHM})')
+        plt.legend(prop={'size': 8})
+        plt.show()
+        if save:
+            fig.savefig('Graphs/describe_simulation_RWHM_' + self.proposal_RWHM + '.png')
+
     def graph_chain(self, n_points=1000):
         """
         Draw the the Markov chain. A sanity-check for this MCMC simulation is to have the graph looks 'random' : i.e. a
@@ -321,25 +350,25 @@ class VonMisesRWHM(ProjectModel):
 
 if __name__ == '__main__':
     # Parameters common to every model:
-    mu = 1.
-    kappa = 20.
+    mu = 0.
+    kappa = 1.
     n = 1_000_000
     proposal = 'cauchy'
     save = False
 
     """ DESCRIBE """
     model = VonMisesAcceptReject(mu=mu, kappa=kappa)
-    model.describe_mu(save=save)  # plots the density for different values of mu
-    model.describe_kappa(save=save)  # plots the density for different values of kappa
-    model.describe_simulation(save=save)  # plots the simulation for different values of n
-    VonMisesAcceptReject(mu=mu, kappa=kappa, proposal='uniform').describe_simulation(save=save)  # plots the simulation for different values of n
-    model.estimate_params_MCMC_MLE()  # estimates the parameters of the model by MCMC MLE
+    # model.describe_mu(save=save)  # plots the density for different values of mu
+    # model.describe_kappa(save=save)  # plots the density for different values of kappa
+    # model.describe_simulation(save=save)  # plots the simulation for different values of n
+    # VonMisesAcceptReject(mu=mu, kappa=kappa, proposal='uniform').describe_simulation(save=save)  # plots the simulation for different values of n
+    # model.estimate_params_MCMC_MLE()  # estimates the parameters of the model by MCMC MLE
     # model.acceptance_rate_simulation(save=save)  # plots the acceptance rate against kappa
 
     """ SIMULATE """
     model = VonMisesAcceptReject(mu=mu, kappa=kappa, proposal=proposal)
-    model.simulate(n=n)  # generates n observations under the Accept-Reject simulation
-    model.hist()  # generates the histogram of the above observations
+    # model.simulate(n=n)  # generates n observations under the Accept-Reject simulation
+    # model.hist()  # generates the histogram of the above observations
 
     """ RANDOM WALK HASTINGS-METROPOLIS """
     # Parameters exclusive to RWHM:
@@ -347,12 +376,13 @@ if __name__ == '__main__':
     proposal_RWHM = 'gaussian'  # 'gaussian' or 'uniform'
     sig = 5.5
 
-    model = VonMisesRWHM(mu=mu, kappa=kappa, x_init=x_init, proposal=proposal, proposal_RWHM=proposal_RWHM, sig=sig)
-    # model.simulate(n=n)  # generates n observations under the Random Walk Hastings-Metropolis simulation;
-    # model.hist()  # generates the histogram of the above observations;
+    model_RWHM = VonMisesRWHM(mu=mu, kappa=kappa, x_init=x_init, proposal=proposal, proposal_RWHM=proposal_RWHM, sig=sig)
+    # model_RWHM.simulate(n=n)  # generates n observations under the Random Walk Hastings-Metropolis simulation;
+    # model_RWHM.hist()  # generates the histogram of the above observations;
+    # model_RWHM.describe_simulation(save=save)  # plots the simulation for different values of n
 
     """ SANITY CHECK FOR RWHM """
-    # model.graph_autocorrelation()
-    # model.graph_chain(n_points=500)
+    # model_RWHM.graph_autocorrelation()
+    # model_RWHM.graph_chain(n_points=500)
     # implementation of burn-in sanity-check doesn't have much value there since the distribution is very narrow
     # there (between [-pi,pi]), thus the simulation cannot really 'get lost'.
