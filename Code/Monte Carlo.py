@@ -305,9 +305,35 @@ class VonMisesRWHM(ProjectModel):
         self.acceptance_rate = self.n_accept / n
         if print_acceptance_rates == True: print(
             f'Acceptance rate: {self.acceptance_rate * 100} %.')  # should be calibrated between 25% and 40%;
+        # According to G. O. Roberts, A. Gelman and W. R. Gilks  (https://www.jstor.org/stable/2245134?seq=1),
+        # the optimal rate should be 0.234.
 
         self.results = x
         return self.results
+
+    def fit(self, len_batch=1000, num_iter=1000, min_rate=0.3, max_rate=0.35):
+        """
+        Chooses an optimal value for sigma, the standard deviation of our random walk. Keep in mind when choosing
+        parameters that the number of simulation that will be computed is len_batch * num_iter.
+        :param int len_batch: number of simulations for each Von Mises estimation.
+        :param int num_iter: number of sigma that we want to try.
+        :param float min_rate: lower bound for the acceptance rate.
+        :param float max_rate: upper bound for the acceptance rate.
+        :return NoneType: None. Prints the advised value for sigma.
+        """
+        old_sig = self.sig  # Stocks the value of sigma initially entered by user.
+        step = 10 / num_iter
+        sigma_proposals = [step * i for i in range(1, num_iter)]
+        for i in range(num_iter):
+            sig = sigma_proposals[i]
+            self.sig = sig
+            self.simulate(len_batch, print_acceptance_rates=False)
+            if min_rate < self.acceptance_rate < max_rate:
+                print(f'Recommended value for sigma : {sig}. Acceptance rate around {self.acceptance_rate}.')
+                print(f'{i} iterations to find a fitting value.')
+                return None
+        self.sig = old_sig  # In order not to modify the sigma value wished by the user.
+        print("Couldn't find a sigma that satisfies the acceptance rate criteria.")
 
     def describe_simulation(self, save=False):
         """ This function plots the simulation of a von Mises distribution for different values of n """
@@ -339,28 +365,6 @@ class VonMisesRWHM(ProjectModel):
         if save:
             fig.savefig('Graphs/describe_simulation_RWHM_' + self.proposal_RWHM + '.png')
 
-    def fit(self, len_batch=1000, num_iter=1000):
-        """
-        Chooses an optimal value for sigma, the standard deviation of our random walk. Keep in mind when choosing
-        parameters that the number of simulation that will be computed is len_batch * num_iter.
-        :param int len_batch: number of simulations for each Von Mises estimation.
-        :param int num_iter: number of sigma that we want to try.
-        :return NoneType: None. Prints the advised value for sigma.
-        """
-        old_sig = self.sig  # Stocks the value of sigma initially entered by user.
-        step = 10 / num_iter
-        sigma_proposals = [step * i for i in range(1, num_iter)]
-        for i in range(num_iter):
-            sig = sigma_proposals[i]
-            self.sig = sig
-            self.simulate(len_batch, print_acceptance_rates=False)
-            if 0.3 < self.acceptance_rate < 0.4:
-                print(f'Recommended value for sigma : {sig}. Acceptance rate around {self.acceptance_rate}.')
-                print(i)
-                return None
-        self.sig = old_sig  # In order not to modify the sigma value wished by the user.
-        print("Couldn't find a sigma that satisfies the acceptance rate criteria.")
-
     def graph_chain(self, n_points=1000):
         """
         Draw the the Markov chain. A sanity-check for this MCMC simulation is to have the graph looks 'random' : i.e. a
@@ -385,9 +389,9 @@ class VonMisesRWHM(ProjectModel):
 
 if __name__ == '__main__':
     # Parameters common to every model:
-    mu = 2
-    kappa = 14
-    n = 1_0000
+    mu = 0
+    kappa = 2
+    n = 100_000
     proposal = 'cauchy'
     save = False
 
@@ -400,7 +404,7 @@ if __name__ == '__main__':
     # model.acceptance_rate_simulation(save=save)  # plots the acceptance rate against kappa
 
     """ SIMULATE """
-    # model = VonMisesAcceptReject(mu=mu, kappa=kappa, proposal=proposal)
+    model = VonMisesAcceptReject(mu=mu, kappa=kappa, proposal=proposal)
     # model.simulate(n=n)  # generates n observations under the Accept-Reject simulation
     # model.hist()  # generates the histogram of the above observations
 
@@ -408,14 +412,14 @@ if __name__ == '__main__':
     # Parameters exclusive to RWHM:
     x_init = 0
     proposal_RWHM = 'gaussian'  # 'gaussian' or 'uniform'
-    sig = 5.5
+    sig = 2.52
 
     model_RWHM = VonMisesRWHM(mu=mu, kappa=kappa, x_init=x_init, proposal=proposal, proposal_RWHM=proposal_RWHM,
                               sig=sig)
-    model_RWHM.fit(len_batch=100, num_iter=1_000)
+    model_RWHM.fit(len_batch=1_000, num_iter=1_000, min_rate=0.25, max_rate=0.3)
     # model_RWHM.simulate(n=n)  # generates n observations under the Random Walk Hastings-Metropolis simulation;
     # model_RWHM.hist()  # generates the histogram of the above observations;
-    # model_RWHM.describe_simulation(save=save)  # plots the simulation for different values of n
+    model_RWHM.describe_simulation(save=save)  # plots the simulation for different values of n
 
     """ SANITY CHECK FOR RWHM """
     # model_RWHM.graph_autocorrelation()
