@@ -65,9 +65,9 @@ class ProjectModel:
         mu_std, kappa_std = params_estimated.std(axis=0) * np.sqrt(n / (n - 1))
 
         print(
-            f"Parameters:\n\u03BC = {mu_:.5f}  [{mu_ - 1.96 * mu_std / n ** 0.5:.5f}, {mu_ + 1.96 * mu_std / n ** 0.5:.5f}]")
-        print(
-            f"\u03BA = {kappa_:.5f}  [{kappa_ - 1.96 * kappa_std / n ** 0.5:.5f}, {kappa_ + 1.96 * kappa_std / n ** 0.5:.5f}]\n")
+            f"Parameters:\n\u03BC = {mu_:.5f}  [{mu_ - 1.96 * mu_std / n**0.5:.5f}, {mu_ + 1.96 * mu_std / n**0.5:.5f}]"
+            f"\n\u03BA = {kappa_:.5f}  [{kappa_ - 1.96 * kappa_std / n**0.5:.5f}, {kappa_ + 1.96 * kappa_std / n**0.5:.5f}]\n"
+        )
 
         return np.array([[mu_, mu_std], [kappa_, kappa_std]])
 
@@ -129,7 +129,7 @@ class ProjectModel:
         if save:
             fig.savefig('Graphs/describe_kappa.png')
 
-    def simulate(self, n=1):
+    def simulate(self, n=1, verbose=False):
         raise NotImplementedError("The method should be defined in each child class.")
         pass
 
@@ -168,11 +168,12 @@ class VonMisesAcceptReject(ProjectModel):
     Accept-Reject simulation for von Mises distribution.
     """
 
-    def simulate(self, n=1):
+    def simulate(self, n=1, verbose=False):
         """
         Generates n simulations under our von Mises Accept-Reject simulation.
 
         :param int n: number of simulations
+        :param bool verbose: display parameter (only here to make sure we have the same signature
         :return array: list of simulations
         """
 
@@ -223,10 +224,11 @@ class VonMisesAcceptReject(ProjectModel):
         fig.suptitle(f'von Mises  (\u03BC = {self.mu:.3f},  \u03BA = {self.kappa:.3f},  proposal = {self.proposal})')
         plt.legend(prop={'size': 8})
         plt.show()
+
         if save:
             fig.savefig('Graphs/describe_simulation_' + self.proposal + '.png')
 
-    def acceptance_rate_simulation(self, save=True):
+    def acceptance_rate_simulation(self, save=False):
         """ This function plots the acceptance rate of the rejection test for different values of kappa
         for each proposal distribution """
 
@@ -245,6 +247,7 @@ class VonMisesAcceptReject(ProjectModel):
         ax.set_title("Acceptance rate")
         plt.legend()
         plt.show()
+
         if save:
             fig.savefig('Graphs/acceptance_rate.png')
 
@@ -273,24 +276,29 @@ class VonMisesRWHM(ProjectModel):
 
     def iter(self, x):
         """
-    Does an iteration of the RWHM simulation.
+        Does an iteration of the RWHM simulation.
+
         :param float x: initial value
         :return float: new value of the Markov chain
         """
+
         proposal_step = self.proposal_step(self.proposal_RWHM, self.sig)
         y = x + proposal_step
         r = von_mises_density(y, mu=self.mu, kappa=self.kappa) / von_mises_density(x, mu=self.mu, kappa=self.kappa)
         u = np.random.rand()
+
         if u < r:
             self.n_accept += 1
             return y
         else:
             return x
 
-    def simulate(self, n=100_000, print_acceptance_rates=True):
+    def simulate(self, n=100_000, verbose=False):
         """
         Generates n simulations under our von Mises Random Walk Hastings-Metropolis simulation.
+
         :param int n: number of simulations
+        :param bool verbose: display parameter
         :return list: list of simulations
         """
 
@@ -299,12 +307,12 @@ class VonMisesRWHM(ProjectModel):
 
         x = np.empty(n)
         x[0] = self.x_init
-        for i in range(1, n):  # we realize (n-1) iterations of the Markov Chain
+        for i in range(1, n):
             x[i] = self.iter(x[i - 1])
 
         self.acceptance_rate = self.n_accept / n
-        if print_acceptance_rates == True: print(
-            f'Acceptance rate: {self.acceptance_rate * 100} %.')  # should be calibrated between 25% and 40%;
+        if verbose:
+            print(f'Acceptance rate: {self.acceptance_rate:.1%}')  # should be calibrated between 25% and 40%
 
         self.results = x
         return self.results
@@ -336,6 +344,7 @@ class VonMisesRWHM(ProjectModel):
             f'von Mises  (\u03BC = {self.mu:.3f},  \u03BA = {self.kappa:.3f},  proposal_RWHM = {self.proposal_RWHM})')
         plt.legend(prop={'size': 8})
         plt.show()
+
         if save:
             fig.savefig('Graphs/describe_simulation_RWHM_' + self.proposal_RWHM + '.png')
 
@@ -343,28 +352,33 @@ class VonMisesRWHM(ProjectModel):
         """
         Chooses an optimal value for sigma, the standard deviation of our random walk. Keep in mind when choosing
         parameters that the number of simulation that will be computed is len_batch * num_iter.
+
         :param int len_batch: number of simulations for each Von Mises estimation.
         :param int num_iter: number of sigma that we want to try.
-        :return NoneType: None. Prints the advised value for sigma.
+        :return float sig: the advised value for sigma.
         """
+
         old_sig = self.sig  # Stocks the value of sigma initially entered by user.
         step = 10 / num_iter
         sigma_proposals = [step * i for i in range(1, num_iter)]
+
         for i in range(num_iter):
             sig = sigma_proposals[i]
             self.sig = sig
-            self.simulate(len_batch, print_acceptance_rates=False)
+            self.simulate(len_batch, verbose=False)
+
             if 0.3 < self.acceptance_rate < 0.4:
-                print(f'Recommended value for sigma : {sig}. Acceptance rate around {self.acceptance_rate}.')
-                print(i)
-                return None
+                print(f'Recommended value for sigma : {sig}\nAcceptance rate around {self.acceptance_rate:.1%}')
+                return sig
+
         self.sig = old_sig  # In order not to modify the sigma value wished by the user.
         print("Couldn't find a sigma that satisfies the acceptance rate criteria.")
 
-    def graph_chain(self, n_points=1000):
+    def graph_chain(self, n_points=100):
         """
         Draw the the Markov chain. A sanity-check for this MCMC simulation is to have the graph looks 'random' : i.e. a
         randoms series where no particular pattern appears.
+
         :param int n_points: number of points to display
         :return None: returns the graph of the chain.
         """
@@ -376,6 +390,7 @@ class VonMisesRWHM(ProjectModel):
         """
         Draw the autocorrelations of the Markov chain. A sanity-check for this MCMC simulation is to have the
         autocorrelations plummet rapidly.
+
         :return None: returns the graph of the autocorrelations.
         """
 
@@ -384,41 +399,45 @@ class VonMisesRWHM(ProjectModel):
 
 
 if __name__ == '__main__':
-    # Parameters common to every model:
-    mu = 2
-    kappa = 14
-    n = 1_0000
+    mu = 1.
+    kappa = 0.7
+    n = 1_000_000
     proposal = 'cauchy'
     save = False
 
-    """ DESCRIBE """
-    # model = VonMisesAcceptReject(mu=mu, kappa=kappa) model.describe_mu(save=save)  # plots the density for
-    # different values of mu model.describe_kappa(save=save)  # plots the density for different values of kappa
-    # model.describe_simulation(save=save)  # plots the simulation for different values of n VonMisesAcceptReject(
-    # mu=mu, kappa=kappa, proposal='uniform').describe_simulation(save=save)  # plots the simulation for different
-    # values of n model.estimate_params_MCMC_MLE()  # estimates the parameters of the model by MCMC MLE
-    # model.acceptance_rate_simulation(save=save)  # plots the acceptance rate against kappa
-
     """ SIMULATE """
-    # model = VonMisesAcceptReject(mu=mu, kappa=kappa, proposal=proposal)
-    # model.simulate(n=n)  # generates n observations under the Accept-Reject simulation
-    # model.hist()  # generates the histogram of the above observations
+
+    model = VonMisesAcceptReject(mu=mu, kappa=kappa, proposal=proposal)
+    model.simulate(n=n)  # generates n observations under the Accept-Reject simulation
+    model.hist()  # generates the histogram of the above observations
+
+
+    """ DESCRIBE """
+
+    model = VonMisesAcceptReject(mu=mu, kappa=kappa)
+    model.describe_mu(save=save)  # plots the density for different values of mu
+    model.describe_kappa(save=save)  # plots the density for different values of kappa
+    model.describe_simulation(save=save)  # plots the simulation for different values of n
+    VonMisesAcceptReject(mu=mu, kappa=kappa, proposal='uniform').describe_simulation(save=save)  # plots the simulation for different values of n
+    model.acceptance_rate_simulation(save=save)  # plots the acceptance rate against kappa
+    model.estimate_params_MCMC_MLE()  # estimates the parameters of the model by MCMC MLE
+
 
     """ RANDOM WALK HASTINGS-METROPOLIS """
-    # Parameters exclusive to RWHM:
     x_init = 0
     proposal_RWHM = 'gaussian'  # 'gaussian' or 'uniform'
     sig = 5.5
+    n = 100_000
 
-    model_RWHM = VonMisesRWHM(mu=mu, kappa=kappa, x_init=x_init, proposal=proposal, proposal_RWHM=proposal_RWHM,
-                              sig=sig)
-    model_RWHM.fit(len_batch=100, num_iter=1_000)
-    # model_RWHM.simulate(n=n)  # generates n observations under the Random Walk Hastings-Metropolis simulation;
-    # model_RWHM.hist()  # generates the histogram of the above observations;
-    # model_RWHM.describe_simulation(save=save)  # plots the simulation for different values of n
 
-    """ SANITY CHECK FOR RWHM """
-    # model_RWHM.graph_autocorrelation()
-    # model_RWHM.graph_chain(n_points=500)
-    # implementation of burn-in sanity-check doesn't have much value there since the distribution is very narrow
-    # there (between [-pi,pi]), thus the simulation cannot really 'get lost'.
+    model_RWHM = VonMisesRWHM(mu=mu, kappa=kappa, proposal=proposal, x_init=x_init, proposal_RWHM=proposal_RWHM, sig=sig)
+    model_RWHM.fit()
+    model_RWHM.simulate(n=n, verbose=True)  # generates n observations under the Random Walk Metropolis-Hastings
+    model_RWHM.hist()  # generates the histogram of the above observations
+
+    model_RWHM.graph_autocorrelation()
+    model_RWHM.graph_chain(n_points=500)
+
+    model_RWHM.describe_simulation(save=save)  # plots the simulation for different values of n
+
+
