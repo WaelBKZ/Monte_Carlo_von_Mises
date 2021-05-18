@@ -313,6 +313,8 @@ class VonMisesRWHM(ProjectModel):
         self.acceptance_rate = self.n_accept / n
         if verbose:
             print(f'Acceptance rate: {self.acceptance_rate:.1%}')  # should be calibrated between 25% and 40%
+        # According to G. O. Roberts, A. Gelman and W. R. Gilks  https://www.jstor.org/stable/2245134?seq=1
+        # the optimal rate should be 23.4%
 
         self.results = x
         return self.results
