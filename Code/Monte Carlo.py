@@ -350,13 +350,15 @@ class VonMisesRWHM(ProjectModel):
         if save:
             fig.savefig('Graphs/describe_simulation_RWHM_' + self.proposal_RWHM + '.png')
 
-    def fit(self, len_batch=1000, num_iter=1000):
+    def fit(self, len_batch=1000, num_iter=1000, min_rate=0.25, max_rate=0.3):
         """
         Chooses an optimal value for sigma, the standard deviation of our random walk. Keep in mind when choosing
         parameters that the number of simulation that will be computed is len_batch * num_iter.
 
         :param int len_batch: number of simulations for each Von Mises estimation.
         :param int num_iter: number of sigma that we want to try.
+        :param float min_rate: lower bound for the acceptance rate.
+        :param float max_rate: upper bound for the acceptance rate.
         :return float sig: the advised value for sigma.
         """
 
@@ -369,12 +371,14 @@ class VonMisesRWHM(ProjectModel):
             self.sig = sig
             self.simulate(len_batch, verbose=False)
 
-            if 0.3 < self.acceptance_rate < 0.4:
+            if min_rate < self.acceptance_rate < max_rate:
                 print(f'Recommended value for sigma : {sig}\nAcceptance rate around {self.acceptance_rate:.1%}')
+                print(f'{i} iterations to find a fitting value')
                 return sig
 
         self.sig = old_sig  # In order not to modify the sigma value wished by the user.
         print("Couldn't find a sigma that satisfies the acceptance rate criteria.")
+        return None
 
     def graph_chain(self, n_points=100):
         """
