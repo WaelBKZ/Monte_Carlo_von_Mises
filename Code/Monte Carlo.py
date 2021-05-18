@@ -312,7 +312,7 @@ class VonMisesRWHM(ProjectModel):
 
         self.acceptance_rate = self.n_accept / n
         if verbose:
-            print(f'Acceptance rate: {self.acceptance_rate:.1%}')  # should be calibrated between 25% and 40%
+            print(f'Acceptance rate: {self.acceptance_rate:.1%}\n')  # should be calibrated between 25% and 40%
         # According to G. O. Roberts, A. Gelman and W. R. Gilks  https://www.jstor.org/stable/2245134?seq=1
         # the optimal rate should be 23.4%
 
@@ -337,6 +337,8 @@ class VonMisesRWHM(ProjectModel):
             ax[i].set_xticks([-3.14, 0., 3.14])
             ax[i].title.set_text(f'n = {val:.1e}')
             i += 1
+
+        self.simulate(n=10_000)  # Reset the simulation
 
         ax[0].locator_params(axis="y", nbins=4)
         ax[1].get_yaxis().set_visible(False)
@@ -373,11 +375,11 @@ class VonMisesRWHM(ProjectModel):
 
             if min_rate < self.acceptance_rate < max_rate:
                 print(f'Recommended value for sigma : {sig}\nAcceptance rate around {self.acceptance_rate:.1%}')
-                print(f'{i} iterations to find a fitting value')
+                print(f'{i} iterations to find a fitting value\n')
                 return sig
 
         self.sig = old_sig  # In order not to modify the sigma value wished by the user.
-        print("Couldn't find a sigma that satisfies the acceptance rate criteria.")
+        print("Couldn't find a sigma that satisfies the acceptance rate criteria\n")
         return None
 
     def graph_chain(self, n_points=100):
@@ -412,22 +414,24 @@ if __name__ == '__main__':
     save = False
 
     """ SIMULATE """
-
+    """
     model = VonMisesAcceptReject(mu=mu, kappa=kappa, proposal=proposal)
     model.simulate(n=n)  # generates n observations under the Accept-Reject simulation
     model.hist()  # generates the histogram of the above observations
-
+    """
 
     """ DESCRIBE """
-
+    """
     model = VonMisesAcceptReject(mu=mu, kappa=kappa)
     model.describe_mu(save=save)  # plots the density for different values of mu
     model.describe_kappa(save=save)  # plots the density for different values of kappa
+
     model.describe_simulation(save=save)  # plots the simulation for different values of n
     VonMisesAcceptReject(mu=mu, kappa=kappa, proposal='uniform').describe_simulation(save=save)  # plots the simulation for different values of n
     model.acceptance_rate_simulation(save=save)  # plots the acceptance rate against kappa
-    model.estimate_params_MCMC_MLE()  # estimates the parameters of the model by MCMC MLE
 
+    model.estimate_params_MCMC_MLE()  # estimates the parameters of the model by MCMC MLE
+    """
 
     """ RANDOM WALK HASTINGS-METROPOLIS """
     x_init = 0
@@ -435,7 +439,7 @@ if __name__ == '__main__':
     sig = 5.5
     n = 100_000
 
-
+    """
     model_RWHM = VonMisesRWHM(mu=mu, kappa=kappa, proposal=proposal, x_init=x_init, proposal_RWHM=proposal_RWHM, sig=sig)
     model_RWHM.fit()
     model_RWHM.simulate(n=n, verbose=True)  # generates n observations under the Random Walk Metropolis-Hastings
@@ -445,5 +449,4 @@ if __name__ == '__main__':
     model_RWHM.graph_chain(n_points=500)
 
     model_RWHM.describe_simulation(save=save)  # plots the simulation for different values of n
-
-
+    """
