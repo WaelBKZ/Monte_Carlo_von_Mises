@@ -5,4 +5,4 @@ We simulated this distribution, for which the normalization constant is not know
 1) Rejection Sampling
 2) Random Walk Hastings-Metropolis (RWHM)
 
-We also used Markov chain Monte Carlo Maximum likelihood Estimation (better known as MCMC-MLE) to predict the values of mu and kappa from this distribution, from observed data.
+We also used Markov chain Monte Carlo Maximum likelihood Estimation (better known as MCMC-MLE) to predict the values of mu and kappa in this distribution, from observed data.
